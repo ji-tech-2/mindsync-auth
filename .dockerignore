@@ -1,0 +1,17 @@
+#!target/
+
+# IDE and tooling
+.idea/
+.vscode/
+*.iml
+
+# Git metadata
+.git
+.gitignore
+
+# Logs and OS/editor cruft
+*.log
+*.swp
+.DS_Store
+Thumbs.db
+
