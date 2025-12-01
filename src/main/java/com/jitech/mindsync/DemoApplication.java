@@ -1,4 +1,4 @@
-package com.jitech.demo;
+package com.jitech.mindsync;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

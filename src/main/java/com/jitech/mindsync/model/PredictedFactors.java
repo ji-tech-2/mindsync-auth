@@ -1,8 +1,6 @@
-package com.jitech.demo.model;
+package com.jitech.mindsync.model;
 
 import jakarta.persistence.*;
-
-import java.util.UUID;
 
 @Entity
 @Table(name = "predicted_factors")

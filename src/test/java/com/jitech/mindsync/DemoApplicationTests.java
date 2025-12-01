@@ -1,4 +1,4 @@
-package com.jitech.demo;
+package com.jitech.mindsync;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

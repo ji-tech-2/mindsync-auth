@@ -1,4 +1,4 @@
-package com.jitech.demo.model;
+package com.jitech.mindsync.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
