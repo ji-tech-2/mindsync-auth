@@ -1,0 +1,38 @@
+2025-12-12T08:32:02.767+07:00  INFO 400 --- [mindsync] [main] c.jitech.mindsync.MindSyncApplication    : Starting MindSyncApplication using Java 23.0.1 with PID 400 (C:\Users\hanna\Project\Software Engineering\mindsync-backend\target\classes started by hanna in C:\Users\hanna\Project\Software Engineering\mindsync-backend)
+2025-12-12T08:32:02.769+07:00  INFO 400 --- [mindsync] [main] c.jitech.mindsync.MindSyncApplication    : The following 1 profile is active: "local"
+2025-12-12T08:32:03.593+07:00  INFO 400 --- [mindsync] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-12T08:32:03.615+07:00  INFO 400 --- [mindsync] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 13 ms. Found 0 JPA repository interfaces.
+2025-12-12T08:32:04.202+07:00  INFO 400 --- [mindsync] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2025-12-12T08:32:04.221+07:00  INFO 400 --- [mindsync] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-12T08:32:04.221+07:00  INFO 400 --- [mindsync] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-12-12T08:32:04.267+07:00  INFO 400 --- [mindsync] [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-12T08:32:04.268+07:00  INFO 400 --- [mindsync] [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1436 ms
+2025-12-12T08:32:04.529+07:00  INFO 400 --- [mindsync] [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-12T08:32:04.601+07:00  INFO 400 --- [mindsync] [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.33.Final
+2025-12-12T08:32:04.635+07:00  INFO 400 --- [mindsync] [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-12T08:32:05.006+07:00  INFO 400 --- [mindsync] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-12T08:32:05.040+07:00  INFO 400 --- [mindsync] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-12-12T08:32:05.266+07:00  INFO 400 --- [mindsync] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@5c70d7f0
+2025-12-12T08:32:05.267+07:00  INFO 400 --- [mindsync] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-12-12T08:32:05.327+07:00  WARN 400 --- [mindsync] [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-12T08:32:05.348+07:00  INFO 400 --- [mindsync] [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.0
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-12T08:32:06.337+07:00  INFO 400 --- [mindsync] [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-12T08:32:06.535+07:00  INFO 400 --- [mindsync] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12T08:32:06.594+07:00  WARN 400 --- [mindsync] [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-12-12T08:32:07.024+07:00  INFO 400 --- [mindsync] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2025-12-12T08:32:07.031+07:00  INFO 400 --- [mindsync] [main] c.jitech.mindsync.MindSyncApplication    : Started MindSyncApplication in 4.836 seconds (process running for 5.363)
+2025-12-12T08:35:39.984+07:00  INFO 400 --- [mindsync] [http-nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-12T08:35:39.985+07:00  INFO 400 --- [mindsync] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-12T08:35:39.987+07:00  INFO 400 --- [mindsync] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-12-12T08:35:58.208+07:00  INFO 400 --- [mindsync] [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-12T08:35:58.213+07:00  INFO 400 --- [mindsync] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-12-12T08:35:58.217+07:00  INFO 400 --- [mindsync] [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12T08:35:58.220+07:00  INFO 400 --- [mindsync] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-12-12T08:35:58.224+07:00  INFO 400 --- [mindsync] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
