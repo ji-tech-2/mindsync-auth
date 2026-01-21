@@ -22,12 +22,12 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public Users login(String username, String password) {
-        Optional<Users> userOpt = userRepository.findByUsername(username);
+    public Users login(String email, String password) {
+        // Cari user berdasarkan email, bukan username
+        Optional<Users> userOpt = userRepository.findByEmail(email); 
         
         if (userOpt.isPresent()) {
             Users user = userOpt.get();
-            // Mengecek apakah password murni cocok dengan hash di DB
             if (passwordEncoder.matches(password, user.getPassword())) {
                 return user; 
             }

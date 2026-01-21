@@ -22,7 +22,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-    Users user = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
+    Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
     
     if (user != null) {
         // Buat Map baru agar Java tidak memproses seluruh isi model Users
@@ -35,7 +35,7 @@ public class AuthController {
             "occupation", user.getOccupation().getOccupationName()
         ));
     } else {
-        return ResponseEntity.status(401).body(Map.of("message", "Username atau Password salah"));
+        return ResponseEntity.status(401).body(Map.of("message", "Invalid Email or Password"));
     }
 }
 }
