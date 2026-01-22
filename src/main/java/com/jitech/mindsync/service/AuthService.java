@@ -10,14 +10,21 @@ import java.util.Optional;
 @Service
 public class AuthService {
 
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    public AuthService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // Logic Register yang sudah ada
     public Users registerUser(Users user) {
+        // Cek apakah user dengan email ini sudah terdaftar
+        Optional<Users> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("User with this email already exists");
+        }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }

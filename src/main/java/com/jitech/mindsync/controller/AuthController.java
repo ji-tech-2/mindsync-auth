@@ -12,18 +12,27 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
+    private final AuthService authService;
+    
     @Autowired
-    private AuthService authService;
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Users user) {
-        return ResponseEntity.ok(authService.registerUser(user));
+        try {
+            return ResponseEntity.ok(authService.registerUser(user));
+        } catch (IllegalArgumentException e) {
+            // Mengubah error 500 menjadi 400 (Bad Request) dengan pesan yang jelas
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
     Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
-    
+
     if (user != null) {
         // Buat Map baru agar Java tidak memproses seluruh isi model Users
         return ResponseEntity.ok(Map.of(
@@ -35,7 +44,7 @@ public class AuthController {
             "occupation", user.getOccupation().getOccupationName()
         ));
     } else {
-        return ResponseEntity.status(401).body(Map.of("message", "Invalid Email or Password"));
+        return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
     }
 }
 }
