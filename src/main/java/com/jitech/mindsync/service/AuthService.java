@@ -39,41 +39,73 @@ public class AuthService {
     }
 
     public Users registerUser(RegisterRequest request) {
-        // 1. Cek email eksis
+
+        //   1. Cek duplikasi email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new IllegalArgumentException("Email already registered");
         }
-        
-        // 2. Ambil Gender (Pastikan Frontend kirim 'Male' atau 'Female')
-        Genders gender = gendersRepository.findByGenderName(request.getGender())
-            .orElseThrow(() -> new IllegalArgumentException("Invalid gender: " + request.getGender()));
 
-        // 3. Set Default Occupation (Sesuai gambar tabel: 'Student')
-        // Karena screening belum dilakukan, kita set default ke Student dulu
-        String occName = (request.getOccupation() == null) ? "Student" : request.getOccupation();
-        Occupations occupation = occupationsRepository.findByOccupationName(occName)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + occName));
+        // 2. Cari Gender (Pastikan sesuai: Male, Female, Non-binary/Other)
+        Genders gender = gendersRepository.findByGenderName(request.getGender().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid gender"));
 
-        // 4. Set Default Work Remote (Sesuai gambar tabel: 'In-person')
-        // Kita pakai 'In-person' sebagai default agar database tidak error null
-        String wrName = (request.getWorkRmt() == null) ? "In-person" : request.getWorkRmt();
-        WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(wrName)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid work remote: " + wrName));
-        
+        // 3. Cari Occupation (Sesuai tabel: Employed, Student, dsb.)
+        String occName = (request.getOccupation() == null) ? "Student" : request.getOccupation().trim();
+        Occupations occupation = occupationsRepository.findByOccupationNameIgnoreCase(occName)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + occName));
+
+        // 4. Cari Work Remote (PENTING: Gunakan 'In-person', bukan 'On-site')
+        String workRmtName = (request.getWorkRmt() == null) ? "In-person" : request.getWorkRmt().trim();
+        WorkRemotes workRmt = workRemotesRepository.findByWorkRmtNameIgnoreCase(workRmtName)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid work remote status: " + workRmtName));
+
+        // 5. Simpan User
         Users user = new Users();
         user.setEmail(request.getEmail());
         user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
         user.setDob(request.getDob());
-
-        // relasi
         user.setGender(gender);
-        user.setOccupation(occupation); 
+        user.setOccupation(occupation);
         user.setWorkRmt(workRmt);
-        
+
         return userRepository.save(user);
+
+    // cek db lokal
+        // 1. Cek email eksis...
+        // if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        //     throw new IllegalArgumentException("Email already registered");
+        // }
+
+        // // 2. Cari Gender
+        // Genders gender = gendersRepository.findByGenderName(request.getGender())
+        //     .orElseThrow(() -> new IllegalArgumentException("Invalid gender"));
+
+        // // 3. Cari Occupation (Tambahkan ini)
+        // Occupations occupation = occupationsRepository.findByOccupationName(request.getOccupation())
+        //     .orElseThrow(() -> new IllegalArgumentException("Invalid occupation"));
+
+        // // 4. Cari Work Remote (Tambahkan ini)
+        // // Cek jika request workRmt null, berikan default "On-site"
+        // String workRmtName = (request.getWorkRmt() == null) ? "On-site" : request.getWorkRmt();
+
+        // WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(workRmtName   )
+        //     .orElseThrow(() -> new IllegalArgumentException("Invalid work remote status"));
+
+        // Users user = new Users();
+        // user.setEmail(request.getEmail());
+        // user.setUsername(request.getEmail());
+        // user.setPassword(passwordEncoder.encode(request.getPassword()));
+        // user.setName(request.getName());
+        // user.setDob(request.getDob());
+        // user.setGender(gender);
+        // user.setOccupation(occupation); 
+        // user.setWorkRmt(workRmt);
+
+        // return userRepository.save(user);
     }
+
 
     public Users login(String email, String password) {
         Optional<Users> userOpt = userRepository.findByEmail(email); 

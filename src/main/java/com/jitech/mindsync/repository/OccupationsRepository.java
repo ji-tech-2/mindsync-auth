@@ -8,6 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface OccupationsRepository extends JpaRepository<Occupations, Integer> {
-    // Sesuaikan tipe data ID (Integer/UUID) dengan yang ada di model Occupations
-    Optional<Occupations> findByOccupationName(String occupationName);
+    Optional<Occupations> findByOccupationNameIgnoreCase(String occupationName);
 }
