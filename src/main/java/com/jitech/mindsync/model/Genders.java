@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 @Entity
 @Table(name = "genders")
 public class Genders {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "gender_id")
@@ -15,10 +16,23 @@ public class Genders {
     @Column(name = "gender_name", length = 50, unique = true, nullable = false)
     private String genderName;
 
+    // Constructor
     public Genders() {}
 
-    public int getGenderId() {return genderId;}
-    public void setGenderId(int genderId) {this.genderId = genderId;}
-    public String getGenderName() {return genderName;}
-    public void setGenderName(String genderName) {this.genderName = genderName;}
+    // Getters and Setters
+    public int getGenderId() {
+        return genderId;
+    }
+
+    public void setGenderId(int genderId) {
+        this.genderId = genderId;
+    }
+
+    public String getGenderName() {
+        return genderName;
+    }
+
+    public void setGenderName(String genderName) {
+        this.genderName = genderName;
+    }
 }
