@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface OccupationsRepository extends JpaRepository<Occupations, Integer> {
-    Optional<Occupations> findByOccupationNameIgnoreCase(String occupationName);
+    Optional<Occupations> findByOccupationName(String occupationName);
 }

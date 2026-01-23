@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @Repository
 public interface WorkRemotesRepository extends JpaRepository<WorkRemotes, Integer> {
-    Optional<WorkRemotes> findByWorkRmtNameIgnoreCase(String workRmtName);
+    Optional<WorkRemotes> findByWorkRmtName(String workRmtName);
 }
