@@ -52,28 +52,29 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // Jalankan logic login yang sudah kamu punya di AuthService
         Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (user != null) {
-            // JIKA BERHASIL, cetak token JWT-nya
             String token = jwtProvider.generateToken(user.getEmail());
-
-            // Kembalikan JwtResponse sesuai tugas Poin 5 di Trello
+            
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("token", token);
             response.put("type", "Bearer");
-            
+
             Map<String, Object> userData = new HashMap<>();
+            userData.put("userId", user.getUserId());
             userData.put("email", user.getEmail());
             userData.put("name", user.getName());
-            userData.put("userId", user.getUserId());
-            
+             
+            userData.put("dob", user.getDob()); 
+            userData.put("gender", user.getGender() != null ? user.getGender().getGenderName() : null);
+            userData.put("occupation", user.getOccupation() != null ? user.getOccupation().getOccupationName() : null);
+
             response.put("user", userData);
 
             return ResponseEntity.ok(response);
-        } else {
+        }else{
             return ResponseEntity.status(401).body(Map.of(
                 "success", false,
                 "message", "Invalid email or password"
