@@ -3,6 +3,8 @@ package com.jitech.mindsync.controller;
 import com.jitech.mindsync.dto.RegisterRequest;
 import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.service.AuthService;
+import com.jitech.mindsync.dto.LoginRequest;
+import com.jitech.mindsync.security.JwtProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +17,14 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtProvider jwtProvider;
     
     @Autowired
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtProvider jwtProvider) {
         this.authService = authService;
+        this.jwtProvider = jwtProvider;
     }
+
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -50,17 +55,32 @@ public class AuthController {
         Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (user != null) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("userId", user.getUserId());
-            response.put("email", user.getEmail());
-            response.put("name", user.getName());
-            response.put("dob", user.getDob());
-            response.put("gender", user.getGender() != null ? user.getGender().getGenderName() : null);
-            response.put("occupation", user.getOccupation() != null ? user.getOccupation().getOccupationName() : null);
+            String token = jwtProvider.generateToken(user.getEmail());
             
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("token", token);
+            response.put("type", "Bearer");
+
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("userId", user.getUserId());
+            userData.put("email", user.getEmail());
+            userData.put("name", user.getName());
+             
+            userData.put("dob", user.getDob()); 
+            userData.put("gender", user.getGender() != null ? user.getGender().getGenderName() : null);
+            userData.put("occupation", user.getOccupation() != null ? user.getOccupation().getOccupationName() : null);
+
+            response.put("user", userData);
+
             return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
+        }else{
+            return ResponseEntity.status(401).body(Map.of(
+                "success", false,
+                "message", "Invalid email or password"
+            ));
         }
     }
+
+    
 }
