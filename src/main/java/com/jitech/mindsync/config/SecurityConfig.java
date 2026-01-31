@@ -40,6 +40,7 @@ public class SecurityConfig {
             ) 
             .authorizeHttpRequests(auth -> auth
             .requestMatchers("/register", "/login").permitAll() // Izinkan path spesifik
+            .requestMatchers("/profile/request-otp", "/profile/verify-otp", "/profile/change-password").permitAll() // Public OTP endpoints
             .requestMatchers("/h2-console/**").permitAll()
             .anyRequest().authenticated() 
         );
