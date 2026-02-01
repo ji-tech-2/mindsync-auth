@@ -11,7 +11,17 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/profile")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+    "http://165.22.63.100",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081"
+})
 public class ProfileController {
 
     private final ProfileService profileService;
@@ -89,7 +99,8 @@ public class ProfileController {
                 "success", false,
                 "message", e.getMessage()
             ));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            // Catches email sending failures (RuntimeException thrown by EmailService)
             return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Failed to send OTP. Please try again later."
@@ -103,9 +114,9 @@ public class ProfileController {
      */
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request) {
-        boolean isValid = profileService.verifyOtp(request.getEmail(), request.getOtp());
+        String error = profileService.verifyOtp(request.getEmail(), request.getOtp());
         
-        if (isValid) {
+        if (error == null) {
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "OTP verified successfully"
@@ -113,7 +124,7 @@ public class ProfileController {
         } else {
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
-                "message", "Invalid or expired OTP"
+                "message", error
             ));
         }
     }
@@ -155,6 +166,12 @@ public class ProfileController {
             throw new IllegalArgumentException("Invalid authorization header");
         }
         String token = authHeader.substring(7);
+        
+        // Validate token before extracting email
+        if (!jwtProvider.validateToken(token)) {
+            throw new IllegalArgumentException("Invalid or expired token");
+        }
+        
         return jwtProvider.getEmailFromToken(token);
     }
 }

@@ -95,22 +95,28 @@ public class ProfileService {
     }
 
     public void requestPasswordReset(String email) {
-        // Verify user exists
+        // Verify user exists - silently return if not found to prevent user enumeration
         Optional<Users> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found with this email");
+            // Don't reveal whether user exists - just return silently
+            return;
         }
 
         // Send OTP
         otpService.sendOtp(email);
     }
 
-    public boolean verifyOtp(String email, String otp) {
+    public String verifyOtp(String email, String otp) {
         return otpService.verifyOtp(email, otp);
     }
 
     @Transactional
     public boolean changePassword(String email, String otp, String newPassword) {
+        // Validate password strength
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters");
+        }
+
         // Validate and use OTP
         if (!otpService.validateAndUseOtp(email, otp)) {
             return false;
