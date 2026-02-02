@@ -12,7 +12,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/profile")
 @CrossOrigin(origins = {
+    "http://139.59.109.5",
     "http://165.22.63.100",
+    "http://165.22.246.95",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:8080",
