@@ -34,3 +34,7 @@ build/
 
 ### Costum Logs ###
 logs/
+
+### Environment Variables ###
+.env
+*.env
