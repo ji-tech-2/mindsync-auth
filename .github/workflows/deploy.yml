@@ -82,6 +82,8 @@ jobs:
               -p 80:8080 \
               --name ${{ env.REPO_NAME }} \
               --restart always \
+              -e EMAIL_USERNAME="${{ secrets.EMAIL_USERNAME }}" \
+              -e EMAIL_PASSWORD="${{ secrets.EMAIL_PASSWORD }}" \
               $IMAGE_NAME:$IMAGE_TAG
 
             docker image prune -f
