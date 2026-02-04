@@ -42,6 +42,8 @@ public class SecurityConfig {
             .requestMatchers("/register", "/login").permitAll() // Izinkan path spesifik
             .requestMatchers("/profile/request-otp", "/profile/verify-otp", "/profile/change-password").permitAll() // Public OTP endpoints
             .requestMatchers("/test-email").permitAll() // test email endpoint
+            .requestMatchers("/test-otp").permitAll() // test otp endpoint
+            .requestMatchers("/test-verify-otp").permitAll() // test verify otp endpoint
             .requestMatchers("/h2-console/**").permitAll()
             .anyRequest().authenticated() 
         );
