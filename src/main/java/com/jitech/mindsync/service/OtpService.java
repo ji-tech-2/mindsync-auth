@@ -132,7 +132,7 @@ public class OtpService {
         otpToken.setUsed(true);
         otpTokenRepository.save(otpToken);
 
-        return null; // Success - no error message
+        return "success"; // Success - no error message
     }
 
     @Transactional
