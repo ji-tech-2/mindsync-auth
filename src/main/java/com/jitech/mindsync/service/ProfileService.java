@@ -5,9 +5,11 @@ import com.jitech.mindsync.dto.ProfileUpdateRequest;
 import com.jitech.mindsync.model.Genders;
 import com.jitech.mindsync.model.Occupations;
 import com.jitech.mindsync.model.Users;
+import com.jitech.mindsync.model.WorkRemotes;
 import com.jitech.mindsync.repository.GendersRepository;
 import com.jitech.mindsync.repository.OccupationsRepository;
 import com.jitech.mindsync.repository.UserRepository;
+import com.jitech.mindsync.repository.WorkRemotesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final GendersRepository gendersRepository;
     private final OccupationsRepository occupationsRepository;
+    private final WorkRemotesRepository workRemotesRepository;
     private final OtpService otpService;
     private final EmailService emailService;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -30,6 +33,7 @@ public class ProfileService {
         UserRepository userRepository,
         GendersRepository gendersRepository,
         OccupationsRepository occupationsRepository,
+        WorkRemotesRepository workRemotesRepository,
         OtpService otpService,
         EmailService emailService,
         BCryptPasswordEncoder passwordEncoder
@@ -37,6 +41,7 @@ public class ProfileService {
         this.userRepository = userRepository;
         this.gendersRepository = gendersRepository;
         this.occupationsRepository = occupationsRepository;
+        this.workRemotesRepository = workRemotesRepository;
         this.otpService = otpService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
@@ -79,6 +84,13 @@ public class ProfileService {
             Occupations occupation = occupationsRepository.findByOccupationName(request.getOccupation().trim())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + request.getOccupation()));
             user.setOccupation(occupation);
+        }
+
+        // Update work remote status if provided
+        if (request.getWorkRmt() != null && !request.getWorkRmt().trim().isEmpty()) {
+            WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(request.getWorkRmt().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid work remote status: " + request.getWorkRmt()));
+            user.setWorkRmt(workRmt);
         }
 
         Users savedUser = userRepository.save(user);
