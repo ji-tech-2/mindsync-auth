@@ -1,10 +1,8 @@
 package com.jitech.mindsync.controller;
 
+import com.jitech.mindsync.service.EmailService;
 import com.jitech.mindsync.service.OtpService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,27 +11,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class EmailTestController {
 
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailService emailService;
     @Autowired
     private OtpService otpService;
-    
-    @Value("${spring.mail.username}")
-    private String emailUsername;
-    @Value("${spring.mail.password}")
-    private String emailPassword;
     
     @GetMapping("/test-email")
     public String sendTestEmail(@RequestParam String to) {
         try {
-            System.out.println("Preparing to send email to " + to);
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(emailUsername);
-            message.setTo(to);
-            message.setSubject("Test Email from Mindsync");
-            message.setText("This is a test email to verify SMTP configuration is working.");
-            
-            mailSender.send(message);
-            return "Email sent successfully to " + to;
+            System.out.println("Preparing to send test email to " + to);
+            // Use the OTP email as a test (sends a dummy OTP)
+            emailService.sendOtpEmail(to, "123456");
+            return "Test email sent successfully to " + to;
         } catch (Exception e) {
             return "Failed to send email: " + e.getMessage();
         }

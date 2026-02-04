@@ -7,7 +7,6 @@ import com.jitech.mindsync.dto.RegisterRequest;
 import com.jitech.mindsync.model.Genders;
 import com.jitech.mindsync.model.Occupations;
 import com.jitech.mindsync.model.Users;
-import com.jitech.mindsync.model.WorkRemotes;
 import com.jitech.mindsync.security.JwtAuthenticationFilter;
 import com.jitech.mindsync.security.JwtProvider;
 import com.jitech.mindsync.service.AuthService;
@@ -40,6 +39,8 @@ class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    // TETAP PERLU MOCKBEAN JANGAN DIHAPUS
+    // KUNING-KUNING DEPRECATED DIABAIKAN SAJA
     @MockBean
     private AuthService authService;
 
