@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class EmailService {
@@ -39,6 +40,9 @@ public class EmailService {
     public void sendOtpEmail(String toEmail, String otp) {
         validateEmailConfigured();
         
+        // Sanitize OTP to prevent XSS attacks
+        String sanitizedOtp = HtmlUtils.htmlEscape(otp);
+        
         String htmlContent = 
             "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
             "<h2 style=\"color: #333;\">Password Reset Request</h2>" +
@@ -46,7 +50,7 @@ public class EmailService {
             "<p>You have requested to reset your password for your MindSync account.</p>" +
             "<p style=\"font-size: 24px; font-weight: bold; color: #007bff; " +
             "background-color: #f8f9fa; padding: 15px; text-align: center; " +
-            "border-radius: 5px;\">Your OTP: " + otp + "</p>" +
+            "border-radius: 5px;\">Your OTP: " + sanitizedOtp + "</p>" +
             "<p>This code will expire in <strong>10 minutes</strong>.</p>" +
             "<p>If you did not request this, please ignore this email.</p>" +
             "<br>" +
