@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.9.5-amazoncorretto-21 AS build
+FROM maven:3.9.5-amazoncorretto-21 AS base
 
 WORKDIR /app
 
@@ -8,6 +8,12 @@ COPY pom.xml .
 RUN mvn dependency:go-offline
 
 COPY src ./src
+
+FROM base AS test
+
+RUN mvn test
+
+FROM base AS build
 
 RUN mvn package -DskipTests
 
