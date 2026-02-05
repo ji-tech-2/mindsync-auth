@@ -9,11 +9,21 @@ env:
   REPO_NAME: mindsync-backend
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build --target test -t mindsync-auth-test .
+
   # ----------------------------------------------------------------------
   # JOB 1: Build, Tag, and Push Docker Image
   # ----------------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
