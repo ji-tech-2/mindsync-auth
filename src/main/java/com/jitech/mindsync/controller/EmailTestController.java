@@ -1,39 +1,35 @@
 package com.jitech.mindsync.controller;
 
+import com.jitech.mindsync.service.EmailService;
 import com.jitech.mindsync.service.OtpService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Profile("dev") // biar ga public di production
 public class EmailTestController {
 
+    private static final Logger logger = LoggerFactory.getLogger(EmailTestController.class);
+
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailService emailService;
     @Autowired
     private OtpService otpService;
     
-    @Value("${spring.mail.username}")
-    private String emailUsername;
-    @Value("${spring.mail.password}")
-    private String emailPassword;
-    
     @GetMapping("/test-email")
     public String sendTestEmail(@RequestParam String to) {
+        // tujuan ini cuma buat ngesend message doang sebenarnya
+        // jadi kalau OTP hard coded ga ngefek
         try {
-            System.out.println("Preparing to send email to " + to);
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(emailUsername);
-            message.setTo(to);
-            message.setSubject("Test Email from Mindsync");
-            message.setText("This is a test email to verify SMTP configuration is working.");
-            
-            mailSender.send(message);
-            return "Email sent successfully to " + to;
+            logger.info("Preparing to send test email to {}", to);
+            // Use the OTP email as a test (sends a dummy OTP)
+            emailService.sendOtpEmail(to, "123456");
+            return "Test email sent successfully to " + to;
         } catch (Exception e) {
             return "Failed to send email: " + e.getMessage();
         }
@@ -42,7 +38,7 @@ public class EmailTestController {
     @GetMapping("/test-otp")
     public String sendTestOtp(@RequestParam String email) {
         try {
-            System.out.println("Sending OTP to " + email);
+            logger.info("Sending OTP to {}", email);
             otpService.sendOtp(email);
             return "OTP sent successfully to " + email + "\n\nVerify with: http://localhost:8080/test-verify-otp?email=" + email;
         } catch (Exception e) {
@@ -53,7 +49,7 @@ public class EmailTestController {
     @GetMapping("/test-verify-otp")
     public String verifyTestOtp(@RequestParam String email, @RequestParam String otp) {
         try {
-            System.out.println("Verifying OTP: " + otp + " for email: " + email);
+            logger.info("Verifying OTP: {} for email: {}", otp, email);
             String result = otpService.verifyOtp(email, otp);
             if ("success".equals(result)) {
                 return "✓ OTP verified successfully for " + email;
