@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  REPO_NAME: mindsync-auth
+  REPO_NAME: mindsync-backend
 
 jobs:
   deploy:
