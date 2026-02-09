@@ -94,6 +94,7 @@ jobs:
               --restart always \
               -e EMAIL_USERNAME="${{ secrets.EMAIL_USERNAME }}" \
               -e EMAIL_PASSWORD="${{ secrets.EMAIL_PASSWORD }}" \
+              -e RESEND_API="${{ secrets.RESEND_API }}" \
               $IMAGE_NAME:$IMAGE_TAG
 
             docker image prune -f
