@@ -40,29 +40,9 @@ public class EmailTestController {
         try {
             logger.info("Sending OTP to {}", email);
             otpService.sendOtp(email);
-            return "OTP sent successfully to " + email + "\n\nVerify with: http://localhost:8080/test-verify-otp?email=" + email;
+            return "OTP sent successfully to " + email;
         } catch (Exception e) {
             return "Failed to send OTP: " + e.getMessage();
-        }
-    }
-
-    @GetMapping("/test-verify-otp")
-    public String verifyTestOtp(@RequestParam String email, @RequestParam String otp) {
-        try {
-            logger.info("Verifying OTP: {} for email: {}", otp, email);
-            String result = otpService.verifyOtp(email, otp);
-            if ("success".equals(result)) {
-                return "✓ OTP verified successfully for " + email;
-            } else {
-                return "✗ Invalid or expired OTP for " + email + 
-                       "\n\nPossible reasons:" +
-                       "\n- OTP has expired (5 minutes)" +
-                       "\n- OTP already used" +
-                       "\n- Wrong OTP code" +
-                       "\n- Email doesn't match";
-            }
-        } catch (Exception e) {
-            return "Failed to verify OTP: " + e.getMessage();
         }
     }
 }
