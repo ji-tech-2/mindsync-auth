@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image for Testing
+        run: docker build --target test -t mindsync-auth-test .
+
+      - name: Run tests
+        run: docker run --rm mindsync-auth-test
