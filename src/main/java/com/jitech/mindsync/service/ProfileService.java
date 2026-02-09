@@ -30,14 +30,13 @@ public class ProfileService {
 
     @Autowired
     public ProfileService(
-        UserRepository userRepository,
-        GendersRepository gendersRepository,
-        OccupationsRepository occupationsRepository,
-        WorkRemotesRepository workRemotesRepository,
-        OtpService otpService,
-        EmailService emailService,
-        BCryptPasswordEncoder passwordEncoder
-    ) {
+            UserRepository userRepository,
+            GendersRepository gendersRepository,
+            OccupationsRepository occupationsRepository,
+            WorkRemotesRepository workRemotesRepository,
+            OtpService otpService,
+            EmailService emailService,
+            BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.gendersRepository = gendersRepository;
         this.occupationsRepository = occupationsRepository;
@@ -49,23 +48,22 @@ public class ProfileService {
 
     public ProfileResponse getProfile(String email) {
         Users user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         return new ProfileResponse(
-            user.getUserId(),
-            user.getEmail(),
-            user.getName(),
-            user.getDob(),
-            user.getGender() != null ? user.getGender().getGenderName() : null,
-            user.getOccupation() != null ? user.getOccupation().getOccupationName() : null,
-            user.getWorkRmt() != null ? user.getWorkRmt().getWorkRmtName() : null
-        );
+                user.getUserId(),
+                user.getEmail(),
+                user.getName(),
+                user.getDob(),
+                user.getGender() != null ? user.getGender().getGenderName() : null,
+                user.getOccupation() != null ? user.getOccupation().getOccupationName() : null,
+                user.getWorkRmt() != null ? user.getWorkRmt().getWorkRmtName() : null);
     }
 
     @Transactional
     public ProfileResponse updateProfile(String email, ProfileUpdateRequest request) {
         Users user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Update name if provided
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
@@ -75,35 +73,35 @@ public class ProfileService {
         // Update gender if provided
         if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
             Genders gender = gendersRepository.findByGenderName(request.getGender().trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid gender: " + request.getGender()));
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid gender: " + request.getGender()));
             user.setGender(gender);
         }
 
         // Update occupation if provided
         if (request.getOccupation() != null && !request.getOccupation().trim().isEmpty()) {
             Occupations occupation = occupationsRepository.findByOccupationName(request.getOccupation().trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + request.getOccupation()));
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + request.getOccupation()));
             user.setOccupation(occupation);
         }
 
         // Update work remote status if provided
         if (request.getWorkRmt() != null && !request.getWorkRmt().trim().isEmpty()) {
             WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(request.getWorkRmt().trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid work remote status: " + request.getWorkRmt()));
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("Invalid work remote status: " + request.getWorkRmt()));
             user.setWorkRmt(workRmt);
         }
 
         Users savedUser = userRepository.save(user);
 
         return new ProfileResponse(
-            savedUser.getUserId(),
-            savedUser.getEmail(),
-            savedUser.getName(),
-            savedUser.getDob(),
-            savedUser.getGender() != null ? savedUser.getGender().getGenderName() : null,
-            savedUser.getOccupation() != null ? savedUser.getOccupation().getOccupationName() : null,
-            savedUser.getWorkRmt() != null ? savedUser.getWorkRmt().getWorkRmtName() : null
-        );
+                savedUser.getUserId(),
+                savedUser.getEmail(),
+                savedUser.getName(),
+                savedUser.getDob(),
+                savedUser.getGender() != null ? savedUser.getGender().getGenderName() : null,
+                savedUser.getOccupation() != null ? savedUser.getOccupation().getOccupationName() : null,
+                savedUser.getWorkRmt() != null ? savedUser.getWorkRmt().getWorkRmtName() : null);
     }
 
     public void requestPasswordReset(String email) {
@@ -116,10 +114,6 @@ public class ProfileService {
 
         // Send OTP
         otpService.sendOtp(email);
-    }
-
-    public String verifyOtp(String email, String otp) {
-        return otpService.verifyOtp(email, otp);
     }
 
     @Transactional
@@ -136,7 +130,7 @@ public class ProfileService {
 
         // Find user and update password
         Users user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

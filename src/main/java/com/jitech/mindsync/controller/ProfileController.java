@@ -12,17 +12,17 @@ import java.util.Map;
 @RestController
 @RequestMapping("/profile")
 @CrossOrigin(origins = {
-    "http://139.59.109.5",
-    "http://165.22.63.100",
-    "http://165.22.246.95",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "http://localhost:8081",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:8081"
+        "http://139.59.109.5",
+        "http://165.22.63.100",
+        "http://165.22.246.95",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:8081"
 })
 public class ProfileController {
 
@@ -44,16 +44,14 @@ public class ProfileController {
         try {
             String email = extractEmailFromToken(authHeader);
             ProfileResponse profile = profileService.getProfile(email);
-            
+
             return ResponseEntity.ok(Map.of(
-                "success", true,
-                "data", profile
-            ));
+                    "success", true,
+                    "data", profile));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", e.getMessage()
-            ));
+                    "success", false,
+                    "message", e.getMessage()));
         }
     }
 
@@ -63,23 +61,20 @@ public class ProfileController {
      */
     @PutMapping
     public ResponseEntity<?> updateProfile(
-        @RequestHeader("Authorization") String authHeader,
-        @RequestBody ProfileUpdateRequest request
-    ) {
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody ProfileUpdateRequest request) {
         try {
             String email = extractEmailFromToken(authHeader);
             ProfileResponse updatedProfile = profileService.updateProfile(email, request);
-            
+
             return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Profile updated successfully",
-                "data", updatedProfile
-            ));
+                    "success", true,
+                    "message", "Profile updated successfully",
+                    "data", updatedProfile));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", e.getMessage()
-            ));
+                    "success", false,
+                    "message", e.getMessage()));
         }
     }
 
@@ -91,75 +86,47 @@ public class ProfileController {
     public ResponseEntity<?> requestOtp(@RequestBody OtpRequest request) {
         try {
             profileService.requestPasswordReset(request.getEmail());
-            
+
             return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "OTP has been sent to your email"
-            ));
+                    "success", true,
+                    "message", "OTP has been sent to your email"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", e.getMessage()
-            ));
+                    "success", false,
+                    "message", e.getMessage()));
         } catch (RuntimeException e) {
             // Catches email sending failures (RuntimeException thrown by EmailService)
             return ResponseEntity.internalServerError().body(Map.of(
-                "success", false,
-                "message", "Failed to send OTP. Please try again later."
-            ));
+                    "success", false,
+                    "message", "Failed to send OTP. Please try again later."));
         }
     }
 
     /**
-     * Verify OTP code
-     * Public endpoint - no token required
-     */
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request) {
-        String error = profileService.verifyOtp(request.getEmail(), request.getOtp());
-        
-        if (error == null) {
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "OTP verified successfully"
-            ));
-        } else {
-            return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", error
-            ));
-        }
-    }
-
-    /**
-     * Change password after OTP verification
+     * Change password using OTP
      * Public endpoint - no token required
      */
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
         try {
             boolean success = profileService.changePassword(
-                request.getEmail(), 
-                request.getOtp(), 
-                request.getNewPassword()
-            );
-            
+                    request.getEmail(),
+                    request.getOtp(),
+                    request.getNewPassword());
+
             if (success) {
                 return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Password changed successfully"
-                ));
+                        "success", true,
+                        "message", "Password changed successfully"));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Invalid or expired OTP. Please request a new one."
-                ));
+                        "success", false,
+                        "message", "Invalid or expired OTP. Please request a new one."));
             }
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", e.getMessage()
-            ));
+                    "success", false,
+                    "message", e.getMessage()));
         }
     }
 
@@ -168,12 +135,12 @@ public class ProfileController {
             throw new IllegalArgumentException("Invalid authorization header");
         }
         String token = authHeader.substring(7);
-        
+
         // Validate token before extracting email
         if (!jwtProvider.validateToken(token)) {
             throw new IllegalArgumentException("Invalid or expired token");
         }
-        
+
         return jwtProvider.getEmailFromToken(token);
     }
 }

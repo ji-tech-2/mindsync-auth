@@ -21,14 +21,15 @@ public class OtpService {
     private final BCryptPasswordEncoder passwordEncoder;
     private static final int OTP_LENGTH = 6;
     private static final int OTP_EXPIRY_MINUTES = 10;
-    
+
     // Rate limiting: max requests per email within time window
     private static final int MAX_OTP_REQUESTS = 3;
     private static final int RATE_LIMIT_WINDOW_MINUTES = 60;
     private final Map<String, RateLimitInfo> rateLimitMap = new ConcurrentHashMap<>();
 
     @Autowired
-    public OtpService(OtpTokenRepository otpTokenRepository, EmailService emailService, BCryptPasswordEncoder passwordEncoder) {
+    public OtpService(OtpTokenRepository otpTokenRepository, EmailService emailService,
+            BCryptPasswordEncoder passwordEncoder) {
         this.otpTokenRepository = otpTokenRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
@@ -64,7 +65,7 @@ public class OtpService {
 
     private void checkRateLimit(String email) {
         RateLimitInfo info = rateLimitMap.get(email);
-        
+
         if (info == null) {
             rateLimitMap.put(email, new RateLimitInfo());
             return;
@@ -107,55 +108,30 @@ public class OtpService {
     }
 
     @Transactional
-    public String verifyOtp(String email, String otpCode) {
-        Optional<OtpToken> otpTokenOpt = otpTokenRepository
-            .findByEmailAndIsUsedFalse(email);
-
-        if (otpTokenOpt.isEmpty()) {
-            return "No OTP found for this email. Please request a new one.";
-        }
-
-        OtpToken otpToken = otpTokenOpt.get();
-
-        // Check if OTP is expired first
-        if (otpToken.isExpired()) {
-            return "OTP has expired. Please request a new one.";
-        }
-
-        // Verify OTP hash matches
-        if (!passwordEncoder.matches(otpCode, otpToken.getOtpCode())) {
-            return "Invalid OTP code. Please check and try again.";
-        }
-
-        // Atomically mark as both verified and used to prevent race conditions
-        otpToken.setVerified(true);
-        otpToken.setUsed(true);
-        otpTokenRepository.save(otpToken);
-
-        return "success"; // Success - no error message
-    }
-
-    @Transactional
     public boolean validateAndUseOtp(String email, String otpCode) {
-        // Now just checks if OTP was already verified and used
+        // Find unused OTP for this email
         Optional<OtpToken> otpTokenOpt = otpTokenRepository
-            .findByEmailAndIsVerifiedTrueAndIsUsedTrue(email);
+                .findByEmailAndIsUsedFalse(email);
 
         if (otpTokenOpt.isEmpty()) {
             return false;
         }
 
         OtpToken otpToken = otpTokenOpt.get();
-
-        // Verify OTP hash matches
-        if (!passwordEncoder.matches(otpCode, otpToken.getOtpCode())) {
-            return false;
-        }
 
         // Check if OTP is expired
         if (otpToken.isExpired()) {
             return false;
         }
+
+        // Verify OTP hash matches
+        if (!passwordEncoder.matches(otpCode, otpToken.getOtpCode())) {
+            return false;
+        }
+
+        // Mark as used to prevent reuse
+        otpToken.setUsed(true);
+        otpTokenRepository.save(otpToken);
 
         return true;
     }
