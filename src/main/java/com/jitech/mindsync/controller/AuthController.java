@@ -7,6 +7,7 @@ import com.jitech.mindsync.dto.LoginRequest;
 import com.jitech.mindsync.security.JwtProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             Users user = authService.registerUser(request);
 
@@ -50,7 +51,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
         Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (user != null) {
@@ -59,9 +60,10 @@ public class AuthController {
             // Set JWT as httponly cookie
             Cookie jwtCookie = new Cookie("jwt", token);
             jwtCookie.setHttpOnly(true);
-            jwtCookie.setSecure(true); // Set to true in production with HTTPS
+            jwtCookie.setSecure(true); // HTTPS only
             jwtCookie.setPath("/");
             jwtCookie.setMaxAge(24 * 60 * 60); // 24 hours
+            jwtCookie.setAttribute("SameSite", "Strict"); // CSRF protection
             httpResponse.addCookie(jwtCookie);
 
             Map<String, Object> response = new HashMap<>();
@@ -92,9 +94,10 @@ public class AuthController {
         // Clear the JWT cookie
         Cookie jwtCookie = new Cookie("jwt", null);
         jwtCookie.setHttpOnly(true);
-        jwtCookie.setSecure(false); // Set to true in production with HTTPS
+        jwtCookie.setSecure(true); // HTTPS only
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge(0); // Expire immediately
+        jwtCookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(jwtCookie);
 
         return ResponseEntity.ok(Map.of(
