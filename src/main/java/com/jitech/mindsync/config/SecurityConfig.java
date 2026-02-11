@@ -1,11 +1,12 @@
 package com.jitech.mindsync.config;
 
-import com.jitech.mindsync.security.JwtAuthenticationFilter; 
+import com.jitech.mindsync.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy; 
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -20,6 +21,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
 
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOriginsString;
+
     public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
     }
@@ -32,33 +36,39 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Menggunakan konfigurasi CORS di bawah
-            .csrf(csrf -> csrf.disable()) // Mematikan proteksi CSRF untuk testing
-            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            ) 
-            .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/register", "/login").permitAll() // Izinkan path spesifik
-            .requestMatchers("/profile/request-otp", "/profile/verify-otp", "/profile/change-password").permitAll() // Public OTP endpoints
-            .requestMatchers("/test-email").permitAll() // test email endpoint
-            .requestMatchers("/test-otp").permitAll() // test otp endpoint
-            .requestMatchers("/test-verify-otp").permitAll() // test verify otp endpoint
-            .requestMatchers("/h2-console/**").permitAll()
-            .anyRequest().authenticated() 
-        );
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Menggunakan konfigurasi CORS di
+                                                                                   // bawah
+                .csrf(csrf -> csrf.disable()) // Mematikan proteksi CSRF untuk testing
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/register", "/login", "/logout").permitAll() // Allow auth endpoints
+                        .requestMatchers("/profile/request-otp", "/profile/verify-otp", "/profile/change-password")
+                        .permitAll() // Public OTP endpoints
+                        .requestMatchers("/test-email").permitAll() // test email endpoint
+                        .requestMatchers("/test-otp").permitAll() // test otp endpoint
+                        .requestMatchers("/test-verify-otp").permitAll() // test verify otp endpoint
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated());
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-        
+
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Izinkan semua asal (Frontend)
+        // Parse comma-separated origins from properties
+        String[] origins = allowedOriginsString.split(",");
+        configuration.setAllowedOrigins(Arrays.asList(
+                Arrays.stream(origins)
+                        .map(String::trim)
+                        .toArray(String[]::new)));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true); // Enable credentials for cookies
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
