@@ -4,6 +4,7 @@ FROM maven:3.9.5-amazoncorretto-21 AS base
 WORKDIR /app
 
 COPY pom.xml .
+COPY checkstyle.xml .
 
 RUN mvn dependency:go-offline
 
@@ -11,7 +12,7 @@ COPY src ./src
 
 FROM base AS test
 
-RUN mvn test
+RUN mvn checkstyle:check test
 
 FROM base AS build
 
