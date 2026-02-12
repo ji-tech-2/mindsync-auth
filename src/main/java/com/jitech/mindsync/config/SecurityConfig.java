@@ -19,66 +19,80 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter;
+        private final JwtAuthenticationFilter jwtFilter;
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOriginsString;
+        @Value("${app.cors.allowed-origins}")
+        private String allowedOriginsString;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+        public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+                this.jwtFilter = jwtFilter;
+        }
 
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public BCryptPasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // Disabled for stateless JWT + SameSite cookies
-                .headers(headers -> headers
-                        .frameOptions(frame -> frame.deny())
-                        .xssProtection(xss -> xss.headerValue(
-                                org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
-                        .contentTypeOptions(contentType -> contentType.disable())
-                        .httpStrictTransportSecurity(hsts -> hsts
-                                .includeSubDomains(true)
-                                .maxAgeInSeconds(31536000)) // 1 year
-                        .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'self'")))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/register", "/login", "/logout").permitAll() // Allow auth endpoints
-                        .requestMatchers("/profile/request-otp", "/profile/verify-otp", "/profile/change-password")
-                        .permitAll() // Public OTP endpoints
-                        .requestMatchers("/test-email").permitAll() // test email endpoint
-                        .requestMatchers("/test-otp").permitAll() // test otp endpoint
-                        .requestMatchers("/test-verify-otp").permitAll() // test verify otp endpoint
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated());
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(csrf -> csrf.disable()) // Disabled for stateless JWT + SameSite cookies
+                                .headers(headers -> headers
+                                                .frameOptions(frame -> frame.deny())
+                                                .xssProtection(xss -> xss.headerValue(
+                                                                org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                                                .contentTypeOptions(contentType -> contentType.disable())
+                                                .httpStrictTransportSecurity(hsts -> hsts
+                                                                .includeSubDomains(true)
+                                                                .maxAgeInSeconds(31536000)) // 1 year
+                                                .contentSecurityPolicy(csp -> csp
+                                                                .policyDirectives("default-src 'self'")))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/register", "/login", "/logout").permitAll() // Allow
+                                                                                                               // auth
+                                                                                                               // endpoints
+                                                .requestMatchers("/profile/request-otp", "/profile/verify-otp",
+                                                                "/profile/change-password")
+                                                .permitAll() // Public OTP endpoints
+                                                .requestMatchers("/test-email").permitAll() // test email endpoint
+                                                .requestMatchers("/test-otp").permitAll() // test otp endpoint
+                                                .requestMatchers("/test-verify-otp").permitAll() // test verify otp
+                                                                                                 // endpoint
+                                                .requestMatchers("/h2-console/**").permitAll()
+                                                .anyRequest().authenticated());
 
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Parse comma-separated origins from properties
-        String[] origins = allowedOriginsString.split(",");
-        configuration.setAllowedOrigins(Arrays.asList(
-                Arrays.stream(origins)
-                        .map(String::trim)
-                        .toArray(String[]::new)));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true); // Enable credentials for cookies
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                // Parse comma-separated origins from properties
+                String[] origins = allowedOriginsString.split(",");
+                configuration.setAllowedOrigins(Arrays.asList(
+                                Arrays.stream(origins)
+                                                .map(String::trim)
+                                                .toArray(String[]::new)));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(Arrays.asList(
+                                "Content-Type",
+                                "Authorization",
+                                "Accept",
+                                "Origin",
+                                "X-Requested-With",
+                                "Cache-Control"));
+                configuration.setExposedHeaders(Arrays.asList(
+                                "Content-Type",
+                                "Authorization"));
+                configuration.setMaxAge(3600L); // Cache preflight for 1 hour
+                configuration.setAllowCredentials(true); // Enable credentials for cookies
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }
