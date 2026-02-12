@@ -2,6 +2,7 @@ package com.jitech.mindsync.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,27 +22,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
-        // 1. Ambil Header Authorization
-        String authHeader = request.getHeader("Authorization");
 
-        // 2. Cek apakah ada tokennya
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7); // Potong kata "Bearer "
+        String token = null;
 
-            // 3. Validasi token pakai JwtProvider
-            if (jwtProvider.validateToken(token)) {
-                String email = jwtProvider.getEmailFromToken(token);
-
-                // 4. Kasih tahu Spring Security kalau user ini SAH
-                UsernamePasswordAuthenticationToken authentication = 
-                        new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
-                
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 1. Try to get token from httponly cookie first
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("jwt".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
             }
         }
 
-        // 5. Lanjut ke filter berikutnya
+        // 2. If no cookie, fall back to Authorization header (for backwards
+        // compatibility)
+        if (token == null) {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7); // Remove "Bearer " prefix
+            }
+        }
+
+        // 3. Validate token if found
+        if (token != null && jwtProvider.validateToken(token)) {
+            String email = jwtProvider.getEmailFromToken(token);
+
+            // 4. Authenticate user in Spring Security context
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null,
+                    new ArrayList<>());
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+
+        // 5. Continue filter chain
         filterChain.doFilter(request, response);
     }
 }
