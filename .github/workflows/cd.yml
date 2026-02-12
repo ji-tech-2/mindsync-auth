@@ -22,8 +22,8 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: "21"
-          distribution: "temurin"
+          java-version: '21'
+          distribution: 'temurin'
           cache: maven
 
       - name: Extract Version from POM
@@ -57,7 +57,6 @@ jobs:
               -e EMAIL_USERNAME="${{ secrets.EMAIL_USERNAME }}" \
               -e EMAIL_PASSWORD="${{ secrets.EMAIL_PASSWORD }}" \
               -e RESEND_API="${{ secrets.RESEND_API }}" \
-              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               $IMAGE_NAME:$IMAGE_TAG
 
             docker image prune -f
