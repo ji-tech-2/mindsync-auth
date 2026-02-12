@@ -95,6 +95,7 @@ mindsync-auth/
 ### Authentication Endpoints
 
 #### Register User
+
 - **Endpoint:** `POST /register`
 - **Description:** Register a new user account
 - **Request Body:**
@@ -119,8 +120,9 @@ mindsync-auth/
 - **Status Codes:** 200 (Success), 400 (Bad Request)
 
 #### Login
+
 - **Endpoint:** `POST /login`
-- **Description:** Authenticate user and receive JWT token
+- **Description:** Authenticate user and receive JWT token via HttpOnly cookie
 - **Request Body:**
   ```json
   {
@@ -132,8 +134,7 @@ mindsync-auth/
   ```json
   {
     "success": true,
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "type": "Bearer",
+    "message": "Login successful",
     "user": {
       "userId": 1,
       "email": "user@example.com",
@@ -144,18 +145,30 @@ mindsync-auth/
     }
   }
   ```
+- **Cookies:** JWT token is automatically set as an HttpOnly, Secure, SameSite=Strict cookie
 - **Status Codes:** 200 (Success), 401 (Unauthorized)
+
+#### Logout
+
+- **Endpoint:** `POST /logout`
+- **Description:** Logout user and clear authentication cookie
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Logout successful"
+  }
+  ```
+- **Status Codes:** 200 (Success)
 
 ### Profile Endpoints
 
 #### Get Profile
+
 - **Endpoint:** `GET /profile`
 - **Description:** Retrieve current user's profile information
-- **Authentication:** Required (Bearer token)
-- **Headers:**
-  ```
-  Authorization: Bearer <token>
-  ```
+- **Authentication:** Required (JWT cookie)
+- **Credentials:** Include `credentials: 'include'` when making fetch requests
 - **Response:**
   ```json
   {
@@ -173,13 +186,11 @@ mindsync-auth/
 - **Status Codes:** 200 (Success), 400 (Bad Request)
 
 #### Update Profile
+
 - **Endpoint:** `PUT /profile`
 - **Description:** Update user's profile information (name, gender, occupation)
-- **Authentication:** Required (Bearer token)
-- **Headers:**
-  ```
-  Authorization: Bearer <token>
-  ```
+- **Authentication:** Required (JWT cookie)
+- **Credentials:** Include `credentials: 'include'` when making fetch requests
 - **Request Body:**
   ```json
   {
@@ -206,6 +217,7 @@ mindsync-auth/
 - **Status Codes:** 200 (Success), 400 (Bad Request)
 
 #### Request OTP
+
 - **Endpoint:** `POST /profile/request-otp`
 - **Description:** Request OTP code for password reset
 - **Authentication:** Not required
@@ -225,6 +237,7 @@ mindsync-auth/
 - **Status Codes:** 200 (Success), 400 (Bad Request), 500 (Internal Server Error)
 
 #### Verify OTP
+
 - **Endpoint:** `POST /profile/verify-otp`
 - **Description:** Verify OTP code
 - **Authentication:** Not required
@@ -245,6 +258,7 @@ mindsync-auth/
 - **Status Codes:** 200 (Success), 400 (Bad Request)
 
 #### Change Password
+
 - **Endpoint:** `POST /profile/change-password`
 - **Description:** Change user password after OTP verification
 - **Authentication:** Not required
@@ -268,6 +282,7 @@ mindsync-auth/
 ### Utility Endpoints
 
 #### Health Check
+
 - **Endpoint:** `GET /hello`
 - **Description:** Health check endpoint
 - **Authentication:** Not required
@@ -280,6 +295,7 @@ mindsync-auth/
 - **Status Codes:** 200 (Success)
 
 #### Test Email
+
 - **Endpoint:** `GET /test-email`
 - **Description:** Test email sending functionality
 - **Authentication:** Not required
@@ -295,21 +311,22 @@ mindsync-auth/
 
 - Java 21
 - Maven 3.6+
-- PostgreSQL
+- PostgreSQL (local or Docker)
 - Git
 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
-   cd mindsync-auth
+   cd mindsync-backend
    ```
 
-2. Configure application properties:
+2. Set up PostgreSQL (if using Docker):
+
    ```bash
-   # Edit src/main/resources/application.properties
-   # Set up database connection, email configuration, JWT secret
+   docker run --name mindsync-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=demo_mindsync -p 5432:5432 -d postgres:latest
    ```
 
 3. Build the project:
@@ -317,47 +334,229 @@ mindsync-auth/
    ./mvnw clean install
    ```
 
+## Configuration
+
+### Environment Variables
+
+The following environment variables can be configured:
+
+| Variable         | Default                                                 | Description                                                        |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| `JWT_SECRET`     | `ThisIsASecretKeyForJWTGenerationInMindsyncApplication` | Secret key for JWT signing (use strong random value in production) |
+| `RESEND_API`     | (none)                                                  | Resend API key for email functionality                             |
+| `EMAIL_USERNAME` | (none)                                                  | Email sender username                                              |
+| `EMAIL_PASSWORD` | (none)                                                  | Email sender password                                              |
+
+**Generate a strong JWT secret:**
+
+```bash
+openssl rand -base64 32
+```
+
+### Application Properties
+
+- **Production:** `src/main/resources/application.properties`
+  - Uses `https://mindsync.my` CORS origin
+  - Production database configuration
+  - Uses environment variables for secrets
+
+- **Local Development:** `src/main/resources/application-local.properties`
+  - Uses localhost CORS origins (3000, 5173, 8080, 8081)
+  - Local PostgreSQL database
+  - Runs on port 8081
+
 ## Build and Run
 
-### Using Maven
+### Local Development with Maven
 
-Build the project:
-```bash
-./mvnw clean package
-```
+1. Set environment variables (optional, uses defaults if not set):
 
-Run the application:
-```bash
-./mvnw spring-boot:run
-```
+   ```bash
+   # Linux/Mac
+   export JWT_SECRET=$(openssl rand -base64 32)
+   export RESEND_API="your-resend-api-key"
+
+   # Windows PowerShell
+   $env:JWT_SECRET = "your-jwt-secret"
+   $env:RESEND_API = "your-resend-api-key"
+   ```
+
+2. Run with local profile:
+
+   ```bash
+   ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=local"
+   ```
+
+   Or set the profile in `application-local.properties` (already set to `dev` by default)
+
+3. Application will be available at `http://localhost:8081`
+
+### Production Build with Maven
+
+1. Set required environment variables:
+
+   ```bash
+   export JWT_SECRET="your-strong-secret-key"
+   export RESEND_API="your-resend-api-key"
+   export EMAIL_USERNAME="your-email"
+   export EMAIL_PASSWORD="your-email-password"
+   ```
+
+2. Build the project:
+
+   ```bash
+   ./mvnw clean package -DskipTests
+   ```
+
+3. Run the application:
+   ```bash
+   java -jar target/mindsync-*.jar
+   ```
 
 ### Using Docker
 
 Build Docker image:
+
 ```bash
 docker build -t mindsync-auth .
 ```
 
-Run Docker container:
+Run Docker container with environment variables:
+
 ```bash
-docker run -p 8080:8080 mindsync-auth
+docker run -p 8080:8080 \
+  -e JWT_SECRET="your-jwt-secret" \
+  -e RESEND_API="your-resend-api-key" \
+  -e EMAIL_USERNAME="your-email" \
+  -e EMAIL_PASSWORD="your-email-password" \
+  mindsync-auth
 ```
 
-### Default Port
+### Docker Compose (Recommended for Local Development)
 
-The application runs on `http://localhost:8080` by default.
+Create a `docker-compose.yml` file:
+
+```yaml
+version: "3.8"
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo_mindsync
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      RESEND_API: ${RESEND_API}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      SPRING_PROFILES_ACTIVE: local
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+```
+
+Run with docker-compose:
+
+```bash
+docker-compose up
+```
+
+### Default Ports
+
+- **Local Development:** `http://localhost:8081`
+- **Production:** `http://localhost:8080`
+
+## Security Features
+
+This application implements the following security measures:
+
+- **HttpOnly Cookies:** JWT tokens stored as HttpOnly, Secure, SameSite=Strict cookies to prevent XSS attacks
+- **CSRF Protection:** SameSite attribute on cookies prevents Cross-Site Request Forgery
+- **Input Validation:** @Valid annotations on DTOs with @NotBlank, @Email, @Size constraints
+- **Security Headers:**
+  - HSTS (HTTP Strict Transport Security)
+  - XSS Protection
+  - Content Security Policy
+  - Frame Options (Clickjacking protection)
+- **Environment-based Secrets:** JWT secret loaded from environment variables
+- **Password Requirements:** Minimum 8 characters enforced at registration
+- **CORS Configuration:** Environment-specific allowed origins
+- **BCrypt Password Hashing:** Passwords hashed with BCrypt before storage
+
+## Frontend Integration
+
+### HttpOnly Cookie Authentication
+
+This API uses HttpOnly cookies for authentication instead of Bearer tokens. The JWT token is automatically set in a secure cookie on login.
+
+#### Fetch API
+
+```javascript
+// Login
+const response = await fetch("http://localhost:8081/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include", // Important: send cookies with request
+  body: JSON.stringify({
+    email: "user@example.com",
+    password: "password123",
+  }),
+});
+
+// Authenticated requests
+const profileResponse = await fetch("http://localhost:8081/profile", {
+  method: "GET",
+  credentials: "include", // Cookie is automatically sent
+});
+```
+
+#### Axios
+
+```javascript
+// Configure axios to send cookies with requests
+axios.defaults.withCredentials = true;
+
+// Login
+const response = await axios.post("http://localhost:8081/login", {
+  email: "user@example.com",
+  password: "password123",
+});
+
+// Authenticated requests automatically include the cookie
+const profile = await axios.get("http://localhost:8081/profile");
+
+// Logout
+await axios.post("http://localhost:8081/logout");
+```
+
+**Important:** Always use `credentials: 'include'` (Fetch) or `withCredentials: true` (Axios) for cookie-based authentication to work.
 
 ## CORS Configuration
 
-The application supports CORS requests from the following origins:
-- http://165.22.63.100
-- http://139.59.109.5
-- http://165.22.246.95
-- http://localhost:3000
-- http://localhost:5173
-- http://localhost:8080
-- http://localhost:8081
-- http://127.0.0.1:3000
-- http://127.0.0.1:5173
-- http://127.0.0.1:8080
-- http://127.0.0.1:8081
+### Local Development
+
+```
+http://127.0.0.1:3000
+http://127.0.0.1:5173
+http://localhost:3000
+http://localhost:5173
+```
+
+### Production
+
+```
+https://mindsync.my
+```
+
+Update `src/main/resources/application.properties` and `src/main/resources/application-local.properties` to add/modify allowed origins.
