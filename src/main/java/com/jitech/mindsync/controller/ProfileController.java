@@ -1,48 +1,33 @@
 package com.jitech.mindsync.controller;
 
 import com.jitech.mindsync.dto.*;
-import com.jitech.mindsync.security.JwtProvider;
 import com.jitech.mindsync.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/profile")
-@CrossOrigin(origins = {
-        "http://139.59.109.5",
-        "http://165.22.63.100",
-        "http://165.22.246.95",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:8081"
-})
 public class ProfileController {
 
     private final ProfileService profileService;
-    private final JwtProvider jwtProvider;
 
     @Autowired
-    public ProfileController(ProfileService profileService, JwtProvider jwtProvider) {
+    public ProfileController(ProfileService profileService) {
         this.profileService = profileService;
-        this.jwtProvider = jwtProvider;
     }
 
     /**
      * Get current user's profile
-     * Requires: Bearer token in Authorization header
+     * Requires: JWT cookie (automatically handled by JwtAuthenticationFilter)
      */
     @GetMapping
-    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getProfile() {
         try {
-            String email = extractEmailFromToken(authHeader);
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
             ProfileResponse profile = profileService.getProfile(email);
 
             return ResponseEntity.ok(Map.of(
@@ -57,14 +42,12 @@ public class ProfileController {
 
     /**
      * Update current user's profile (name, gender, occupation)
-     * Requires: Bearer token in Authorization header
+     * Requires: JWT cookie (automatically handled by JwtAuthenticationFilter)
      */
     @PutMapping
-    public ResponseEntity<?> updateProfile(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody ProfileUpdateRequest request) {
+    public ResponseEntity<?> updateProfile(@RequestBody ProfileUpdateRequest request) {
         try {
-            String email = extractEmailFromToken(authHeader);
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
             ProfileResponse updatedProfile = profileService.updateProfile(email, request);
 
             return ResponseEntity.ok(Map.of(
@@ -128,19 +111,5 @@ public class ProfileController {
                     "success", false,
                     "message", e.getMessage()));
         }
-    }
-
-    private String extractEmailFromToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid authorization header");
-        }
-        String token = authHeader.substring(7);
-
-        // Validate token before extracting email
-        if (!jwtProvider.validateToken(token)) {
-            throw new IllegalArgumentException("Invalid or expired token");
-        }
-
-        return jwtProvider.getEmailFromToken(token);
     }
 }
