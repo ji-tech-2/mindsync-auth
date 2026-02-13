@@ -12,7 +12,7 @@ services:
     networks:
       - monitoring
 
-  # 2. PROMETHEUS (Gudang Metrics/Angka)
+  # 2. PROMETHEUS (Pengumpul MetriK)
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -22,7 +22,7 @@ services:
     networks:
       - monitoring
 
-  # 3. PROMTAIL (Kurir Log dari Flask)
+  # 3. PROMTAIL (Pengirim Log ke LOKI)
   promtail:
     image: grafana/promtail:2.9.2
     volumes:
@@ -31,8 +31,7 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - monitoring
-
-  # 4. GRAFANA (Dashboard Visual)
+  # 4. GRAFANA (Dashboard Visualisasi)
   grafana:
     image: grafana/grafana:latest
     ports:
