@@ -45,6 +45,7 @@ public class SecurityConfig {
             .requestMatchers("/test-otp").permitAll() // test otp endpoint
             .requestMatchers("/test-verify-otp").permitAll() // test verify otp endpoint
             .requestMatchers("/h2-console/**").permitAll()
+            .requestMatchers("/actuator/**").permitAll() // Izinkan akses ke actuator untuk monitoring
             .anyRequest().authenticated() 
         );
 
