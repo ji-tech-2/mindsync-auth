@@ -27,36 +27,47 @@ jobs:
       - name: Parse Coverage and Quality Reports
         if: always()
         run: |
+          # Initialize variables with defaults
+          COVERAGE="0"
+          COVERED="0"
+          MISSED="0"
+          TOTAL="0"
+          P1_COUNT="0"
+          P2_COUNT="0"
+          P3_COUNT="0"
+
           # Extract JaCoCo coverage
           if [ -f target/site/jacoco/jacoco.csv ]; then
-            COVERAGE=$(tail -1 target/site/jacoco/jacoco.csv | cut -d',' -f8,7 | awk -F',' '{covered=$1; missed=$2; total=covered+missed; if(total>0) printf "%.2f", (covered*100/total); else printf "0"}')
-            COVERED=$(tail -1 target/site/jacoco/jacoco.csv | cut -d',' -f8)
-            MISSED=$(tail -1 target/site/jacoco/jacoco.csv | cut -d',' -f7)
+            LAST_LINE=$(tail -1 target/site/jacoco/jacoco.csv)
+            COVERED=$(echo "$LAST_LINE" | cut -d',' -f8)
+            MISSED=$(echo "$LAST_LINE" | cut -d',' -f7)
             TOTAL=$((COVERED + MISSED))
-            echo "COVERAGE=$COVERAGE" >> "$GITHUB_ENV"
-            echo "COVERED=$COVERED" >> "$GITHUB_ENV"
-            echo "MISSED=$MISSED" >> "$GITHUB_ENV"
-            echo "TOTAL=$TOTAL" >> "$GITHUB_ENV"
-          else
-            echo "COVERAGE=0" >> "$GITHUB_ENV"
-            echo "COVERED=0" >> "$GITHUB_ENV"
-            echo "MISSED=0" >> "$GITHUB_ENV"
-            echo "TOTAL=0" >> "$GITHUB_ENV"
+            if [ "$TOTAL" -gt 0 ]; then
+              COVERAGE=$(echo "scale=2; ($COVERED * 100) / $TOTAL" | bc)
+            fi
           fi
 
           # Extract PMD violations by priority
           if [ -f target/pmd.xml ]; then
-            P1_COUNT=$(grep -c 'priority="1"' target/pmd.xml 2>/dev/null || echo 0)
-            P2_COUNT=$(grep -c 'priority="2"' target/pmd.xml 2>/dev/null || echo 0)
-            P3_COUNT=$(grep -cE 'priority="[3-5]"' target/pmd.xml 2>/dev/null || echo 0)
-            echo "P1_VIOLATIONS=$P1_COUNT" >> "$GITHUB_ENV"
-            echo "P2_VIOLATIONS=$P2_COUNT" >> "$GITHUB_ENV"
-            echo "P3_VIOLATIONS=$P3_COUNT" >> "$GITHUB_ENV"
-          else
-            echo "P1_VIOLATIONS=0" >> "$GITHUB_ENV"
-            echo "P2_VIOLATIONS=0" >> "$GITHUB_ENV"
-            echo "P3_VIOLATIONS=0" >> "$GITHUB_ENV"
+            P1_COUNT=$(grep -c 'priority="1"' target/pmd.xml 2>/dev/null || true)
+            P2_COUNT=$(grep -c 'priority="2"' target/pmd.xml 2>/dev/null || true)
+            P3_COUNT=$(grep -cE 'priority="[3-5]"' target/pmd.xml 2>/dev/null || true)
+            # Ensure we have valid numbers
+            P1_COUNT=${P1_COUNT:-0}
+            P2_COUNT=${P2_COUNT:-0}
+            P3_COUNT=${P3_COUNT:-0}
           fi
+
+          # Write to GitHub environment
+          {
+            echo "COVERAGE=$COVERAGE"
+            echo "COVERED=$COVERED"
+            echo "MISSED=$MISSED"
+            echo "TOTAL=$TOTAL"
+            echo "P1_VIOLATIONS=$P1_COUNT"
+            echo "P2_VIOLATIONS=$P2_COUNT"
+            echo "P3_VIOLATIONS=$P3_COUNT"
+          } >> "$GITHUB_ENV"
 
       - name: Generate Job Summary
         if: always()
