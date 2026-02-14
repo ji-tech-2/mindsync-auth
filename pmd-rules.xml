@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="MindSync PMD Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+    
+    <description>PMD rules for MindSync project with cyclomatic complexity and code quality checks</description>
+
+    <!-- Best Practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="JUnitTestsShouldIncludeAssert"/>
+        <exclude name="JUnitAssertionsShouldIncludeMessage"/>
+        <exclude name="GuardLogStatement"/>
+        <exclude name="AvoidReassigningParameters"/>
+        <exclude name="PreserveStackTrace"/>
+        <exclude name="LooseCoupling"/> <!-- Allow Map usage for response objects -->
+    </rule>
+
+    <!-- Code Style - Exclude logger naming check and other non-critical rules -->
+    <rule ref="category/java/codestyle.xml/TooManyStaticImports"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName"/>
+    <rule ref="category/java/codestyle.xml/MethodNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/ClassNamingConventions"/>
+
+    <!-- Design -->
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="DataClass"/>
+        <exclude name="UseUtilityClass"/>
+        <exclude name="LooseCoupling"/>
+        <exclude name="AvoidCatchingGenericException"/>
+        <exclude name="SignatureDeclareThrowsException"/>
+        <exclude name="AvoidThrowingRawExceptionTypes"/>
+        <exclude name="ImmutableField"/>
+        <exclude name="AvoidDuplicateLiterals"/>
+        <exclude name="NPathComplexity"/>
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <exclude name="InefficientEmptyStringCheck"/>
+    </rule>
+
+    <!-- Cyclomatic Complexity Check <= 15 -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="15"/>
+            <property name="classReportLevel" value="80"/>
+        </properties>
+    </rule>
+
+    <!-- Error Prone -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="BeanMembersShouldSerialize"/>
+        <exclude name="NullAssignment"/>
+        <exclude name="MissingSerialVersionUID"/>
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+        <exclude name="RedundantFieldInitializer"/>
+        <exclude name="AvoidDuplicateLiterals"/> <!-- Allow duplicate strings in responses -->
+        <exclude name="InvalidLogMessageFormat"/> <!-- SLF4J logging style -->
+        <exclude name="AvoidLiteralsInIfCondition"/> <!-- Allow magic numbers in security checks -->
+    </rule>
+
+    <!-- Multithreading -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="UseConcurrentHashMap"/>
+        <exclude name="DoNotUseThreads"/>
+    </rule>
+
+    <!-- Performance -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+        <exclude name="InefficientEmptyStringCheck"/> <!-- Allow .trim().length() for brevity -->
+        <exclude name="RedundantFieldInitializer"/> <!-- Allow default initialization -->
+    </rule>
+
+    <!-- Security -->
+    <rule ref="category/java/security.xml"/>
+
+</ruleset>

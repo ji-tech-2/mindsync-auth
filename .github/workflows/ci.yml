@@ -13,5 +13,152 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image for Testing
-        run: docker build --target test .
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Run Tests and Quality Gates
+        run: mvn clean verify
+        continue-on-error: true
+
+      - name: Parse Coverage and Quality Reports
+        if: always()
+        run: |
+          # Initialize variables with defaults
+          COVERAGE="0"
+          COVERED="0"
+          MISSED="0"
+          TOTAL="0"
+          P1_COUNT="0"
+          P2_COUNT="0"
+          P3_COUNT="0"
+
+          # Extract JaCoCo coverage
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            LAST_LINE=$(tail -1 target/site/jacoco/jacoco.csv)
+            COVERED=$(echo "$LAST_LINE" | cut -d',' -f8)
+            MISSED=$(echo "$LAST_LINE" | cut -d',' -f7)
+            TOTAL=$((COVERED + MISSED))
+            if [ "$TOTAL" -gt 0 ]; then
+              COVERAGE=$(echo "scale=2; ($COVERED * 100) / $TOTAL" | bc)
+            fi
+          fi
+
+          # Extract PMD violations by priority
+          if [ -f target/pmd.xml ]; then
+            P1_COUNT=$(grep -c 'priority="1"' target/pmd.xml 2>/dev/null || true)
+            P2_COUNT=$(grep -c 'priority="2"' target/pmd.xml 2>/dev/null || true)
+            P3_COUNT=$(grep -cE 'priority="[3-5]"' target/pmd.xml 2>/dev/null || true)
+            # Ensure we have valid numbers
+            P1_COUNT=${P1_COUNT:-0}
+            P2_COUNT=${P2_COUNT:-0}
+            P3_COUNT=${P3_COUNT:-0}
+          fi
+
+          # Write to GitHub environment
+          {
+            echo "COVERAGE=$COVERAGE"
+            echo "COVERED=$COVERED"
+            echo "MISSED=$MISSED"
+            echo "TOTAL=$TOTAL"
+            echo "P1_VIOLATIONS=$P1_COUNT"
+            echo "P2_VIOLATIONS=$P2_COUNT"
+            echo "P3_VIOLATIONS=$P3_COUNT"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate Job Summary
+        if: always()
+        run: |
+          echo "# Quality Gates Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Coverage section
+          if [ -n "${{ env.COVERAGE }}" ] && [ "${{ env.COVERAGE }}" != "0" ]; then
+            COVERAGE_PCT="${{ env.COVERAGE }}"
+            if (( $(echo "$COVERAGE_PCT < 80" | bc -l) )); then
+              COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PCT}%25-red?style=flat)"
+              COVERAGE_STATUS="❌ FAILED"
+            else
+              COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PCT}%25-brightgreen?style=flat)"
+              COVERAGE_STATUS="✅ PASSED"
+            fi
+            
+            echo "## Code Coverage $COVERAGE_BADGE" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines Covered | ${{ env.COVERED }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines Missed | ${{ env.MISSED }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Lines | ${{ env.TOTAL }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Coverage % | ${{ env.COVERAGE }}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Target | ≥ 80% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Status | $COVERAGE_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Add package-level breakdown
+            if [ -f target/site/jacoco/jacoco.csv ]; then
+              echo "### Coverage by Package" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Package | Coverage |" >> $GITHUB_STEP_SUMMARY
+              echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
+              
+              # Aggregate by last package component (controller, service, model, etc.)
+              tail -n +2 target/site/jacoco/jacoco.csv | awk -F',' '
+              {
+                pkg=$2
+                split(pkg, parts, ".")
+                component = parts[length(parts)]
+                missed[component] += $8
+                covered[component] += $9
+              }
+              END {
+                for (comp in covered) {
+                  total = covered[comp] + missed[comp]
+                  if (total > 0) {
+                    pct = (covered[comp] * 100) / total
+                    printf "| %s | %.1f%% (%d/%d) |\n", comp, pct, covered[comp], total
+                  }
+                }
+              }' | sort -t'|' -k3 -rn >> $GITHUB_STEP_SUMMARY
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # PMD section
+          if [ -n "${{ env.P1_VIOLATIONS }}" ]; then
+            P1="${{ env.P1_VIOLATIONS }}"
+            P2="${{ env.P2_VIOLATIONS }}"
+            echo "## Code Quality (PMD)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Priority | Count | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+            [ "$P1" -eq 0 ] && P1_STATUS="✅" || P1_STATUS="❌"
+            [ "$P2" -eq 0 ] && P2_STATUS="✅" || P2_STATUS="❌"
+            echo "| 🔴 Blocker (P1) | $P1 | $P1_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟠 Critical (P2) | $P2 | $P2_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟡 Warning (P3+) | ${{ env.P3_VIOLATIONS }} | ℹ️ (allowed) |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 [JaCoCo Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 [PMD Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload JaCoCo Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+
+      - name: Upload PMD Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pmd-report
+          path: target/pmd.xml

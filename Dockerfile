@@ -5,6 +5,7 @@ WORKDIR /app
 
 COPY pom.xml .
 COPY checkstyle.xml .
+COPY pmd-rules.xml .
 
 RUN mvn dependency:go-offline
 
@@ -12,7 +13,7 @@ COPY src ./src
 
 FROM base AS test
 
-RUN mvn checkstyle:check test
+RUN mvn verify
 
 FROM base AS build
 
