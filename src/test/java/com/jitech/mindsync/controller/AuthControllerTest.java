@@ -107,8 +107,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.message", is("Registration successful")))
@@ -134,8 +134,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success", is(false)))
                     .andExpect(jsonPath("$.message", is("Email already registered")));
@@ -157,8 +157,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success", is(false)))
                     .andExpect(jsonPath("$.message", is("Invalid gender")));
@@ -182,16 +182,17 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
-                    .andExpect(jsonPath("$.token", is("mock.jwt.token")))
-                    .andExpect(jsonPath("$.type", is("Bearer")))
+                    .andExpect(jsonPath("$.message", is("Login successful")))
                     .andExpect(jsonPath("$.user.email", is("test@example.com")))
                     .andExpect(jsonPath("$.user.name", is("Test User")))
                     .andExpect(jsonPath("$.user.gender", is("Male")))
-                    .andExpect(jsonPath("$.user.occupation", is("Student")));
+                    .andExpect(jsonPath("$.user.occupation", is("Student")))
+                    .andExpect(cookie().exists("jwt"))
+                    .andExpect(cookie().httpOnly("jwt", true));
 
             verify(authService, times(1)).login("test@example.com", "password123");
             verify(jwtProvider, times(1)).generateToken("test@example.com");
@@ -209,8 +210,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.success", is(false)))
                     .andExpect(jsonPath("$.message", is("Invalid email or password")));
@@ -230,8 +231,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.success", is(false)))
                     .andExpect(jsonPath("$.message", is("Invalid email or password")));
@@ -258,8 +259,8 @@ class AuthControllerTest {
 
             // When/Then
             mockMvc.perform(post("/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.user.gender").value(nullValue()))
