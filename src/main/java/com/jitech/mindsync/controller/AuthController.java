@@ -8,6 +8,8 @@ import com.jitech.mindsync.security.JwtProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
     private final JwtProvider jwtProvider;
@@ -29,6 +33,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        logger.info("POST /register - Registration request received for email: {}", request.getEmail());
         try {
             Users user = authService.registerUser(request);
 
@@ -41,9 +46,13 @@ public class AuthController {
             userData.put("name", user.getName());
 
             response.put("data", userData);
+            logger.info("POST /register - Registration successful for userId: {}, email: {}",
+                    user.getUserId(), user.getEmail());
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
+            logger.warn("POST /register - Registration failed for email: {}. Reason: {}",
+                    request.getEmail(), e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", e.getMessage()));
@@ -52,10 +61,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+        logger.info("POST /login - Login request received for email: {}", loginRequest.getEmail());
         Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (user != null) {
             String token = jwtProvider.generateToken(user.getEmail());
+            logger.debug("JWT token generated for email: {}", user.getEmail());
 
             // Set JWT as httponly cookie
             Cookie jwtCookie = new Cookie("jwt", token);
@@ -65,6 +76,7 @@ public class AuthController {
             jwtCookie.setMaxAge(24 * 60 * 60); // 24 hours
             jwtCookie.setAttribute("SameSite", "Strict"); // CSRF protection
             httpResponse.addCookie(jwtCookie);
+            logger.debug("JWT cookie set for email: {}", user.getEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -81,8 +93,11 @@ public class AuthController {
 
             response.put("user", userData);
 
+            logger.info("POST /login - Login successful for userId: {}, email: {}",
+                    user.getUserId(), user.getEmail());
             return ResponseEntity.ok(response);
         } else {
+            logger.warn("POST /login - Login failed for email: {} - Invalid credentials", loginRequest.getEmail());
             return ResponseEntity.status(401).body(Map.of(
                     "success", false,
                     "message", "Invalid email or password"));
@@ -91,6 +106,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse httpResponse) {
+        logger.info("POST /logout - Logout request received");
         // Clear the JWT cookie
         Cookie jwtCookie = new Cookie("jwt", null);
         jwtCookie.setHttpOnly(true);
@@ -100,6 +116,7 @@ public class AuthController {
         jwtCookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(jwtCookie);
 
+        logger.info("POST /logout - Logout successful, JWT cookie cleared");
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Logout successful"));
