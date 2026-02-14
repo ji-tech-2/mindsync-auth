@@ -97,6 +97,35 @@ jobs:
             echo "| Target | ≥ 80% |" >> $GITHUB_STEP_SUMMARY
             echo "| Status | $COVERAGE_STATUS |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Add package-level breakdown
+            if [ -f target/site/jacoco/jacoco.csv ]; then
+              echo "### Coverage by Package" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Package | Coverage |" >> $GITHUB_STEP_SUMMARY
+              echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
+              
+              # Aggregate by last package component (controller, service, model, etc.)
+              tail -n +2 target/site/jacoco/jacoco.csv | awk -F',' '
+              {
+                pkg=$2
+                split(pkg, parts, ".")
+                component = parts[length(parts)]
+                missed[component] += $8
+                covered[component] += $9
+              }
+              END {
+                for (comp in covered) {
+                  total = covered[comp] + missed[comp]
+                  if (total > 0) {
+                    pct = (covered[comp] * 100) / total
+                    printf "| %s | %.1f%% (%d/%d) |\n", comp, pct, covered[comp], total
+                  }
+                }
+              }' | sort -t'|' -k3 -rn >> $GITHUB_STEP_SUMMARY
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
           # PMD section
