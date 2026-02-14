@@ -9,6 +9,8 @@ import com.jitech.mindsync.repository.GendersRepository;
 import com.jitech.mindsync.repository.UserRepository;
 import com.jitech.mindsync.repository.OccupationsRepository;
 import com.jitech.mindsync.repository.WorkRemotesRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,20 +19,21 @@ import java.util.Optional;
 @Service
 public class AuthService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final GendersRepository gendersRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final OccupationsRepository occupationsRepository; 
+    private final OccupationsRepository occupationsRepository;
     private final WorkRemotesRepository workRemotesRepository;
-    
+
     @Autowired
     public AuthService(
-        UserRepository userRepository,
-        GendersRepository gendersRepository,
-        OccupationsRepository occupationsRepository,
-        WorkRemotesRepository workRemotesRepository,
-        BCryptPasswordEncoder passwordEncoder
-    ) {
+            UserRepository userRepository,
+            GendersRepository gendersRepository,
+            OccupationsRepository occupationsRepository,
+            WorkRemotesRepository workRemotesRepository,
+            BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.gendersRepository = gendersRepository;
         this.occupationsRepository = occupationsRepository;
@@ -39,25 +42,39 @@ public class AuthService {
     }
 
     public Users registerUser(RegisterRequest request) {
+        logger.info("Starting user registration process for email: {}", request.getEmail());
 
-        //   1. Cek duplikasi email
+        // 1. Cek duplikasi email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            logger.warn("Registration failed - Email already registered: {}", request.getEmail());
             throw new IllegalArgumentException("Email already registered");
         }
 
         // 2. Cari Gender (Pastikan sesuai: Male, Female, Non-binary/Other)
+        logger.debug("Validating gender: {}", request.getGender());
         Genders gender = gendersRepository.findByGenderName(request.getGender().trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid gender"));
+                .orElseThrow(() -> {
+                    logger.error("Invalid gender provided: {}", request.getGender());
+                    return new IllegalArgumentException("Invalid gender");
+                });
 
         // 3. Cari Occupation (Sesuai tabel: Employed, Student, dsb.)
         String occName = (request.getOccupation() == null) ? "Student" : request.getOccupation().trim();
+        logger.debug("Validating occupation: {}", occName);
         Occupations occupation = occupationsRepository.findByOccupationName(occName)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + occName));
+                .orElseThrow(() -> {
+                    logger.error("Invalid occupation provided: {}", occName);
+                    return new IllegalArgumentException("Invalid occupation: " + occName);
+                });
 
         // 4. Cari Work Remote (PENTING: Gunakan 'In-person', bukan 'On-site')
         String workRmtName = (request.getWorkRmt() == null) ? "In-person" : request.getWorkRmt().trim();
+        logger.debug("Validating work remote status: {}", workRmtName);
         WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(workRmtName)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid work remote status: " + workRmtName));
+                .orElseThrow(() -> {
+                    logger.error("Invalid work remote status provided: {}", workRmtName);
+                    return new IllegalArgumentException("Invalid work remote status: " + workRmtName);
+                });
 
         // 5. Simpan User
         Users user = new Users();
@@ -70,19 +87,28 @@ public class AuthService {
         user.setOccupation(occupation);
         user.setWorkRmt(workRmt);
 
-        return userRepository.save(user);
+        Users savedUser = userRepository.save(user);
+        logger.info("User registration successful - userId: {}, email: {}", savedUser.getUserId(),
+                savedUser.getEmail());
+
+        return savedUser;
     }
 
-
     public Users login(String email, String password) {
-        Optional<Users> userOpt = userRepository.findByEmail(email); 
-        
+        logger.info("Login attempt for email: {}", email);
+        Optional<Users> userOpt = userRepository.findByEmail(email);
+
         if (userOpt.isPresent()) {
             Users user = userOpt.get();
             if (passwordEncoder.matches(password, user.getPassword())) {
-                return user; 
+                logger.info("Login successful for userId: {}, email: {}", user.getUserId(), email);
+                return user;
+            } else {
+                logger.warn("Login failed - Invalid password for email: {}", email);
             }
+        } else {
+            logger.warn("Login failed - User not found for email: {}", email);
         }
-        return null; 
+        return null;
     }
 }

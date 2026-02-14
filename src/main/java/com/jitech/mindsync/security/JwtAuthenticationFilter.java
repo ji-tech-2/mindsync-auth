@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,12 +18,17 @@ import java.util.ArrayList;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Autowired
     private JwtProvider jwtProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
+        String requestUri = request.getRequestURI();
+        logger.debug("Processing authentication filter for request: {} {}", request.getMethod(), requestUri);
 
         String token = null;
 
@@ -31,6 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             for (Cookie cookie : cookies) {
                 if ("jwt".equals(cookie.getName())) {
                     token = cookie.getValue();
+                    logger.debug("JWT token found in cookie for request: {}", requestUri);
                     break;
                 }
             }
@@ -42,18 +50,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7); // Remove "Bearer " prefix
+                logger.debug("JWT token found in Authorization header for request: {}", requestUri);
             }
         }
 
         // 3. Validate token if found
         if (token != null && jwtProvider.validateToken(token)) {
             String email = jwtProvider.getEmailFromToken(token);
+            logger.debug("JWT token validated successfully. Authenticating user: {} for request: {}",
+                    email, requestUri);
 
             // 4. Authenticate user in Spring Security context
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null,
                     new ArrayList<>());
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            logger.info("User authenticated successfully: {} for request: {} {}", email, request.getMethod(),
+                    requestUri);
+        } else if (token != null) {
+            logger.warn("Invalid JWT token provided for request: {} {}", request.getMethod(), requestUri);
         }
 
         // 5. Continue filter chain

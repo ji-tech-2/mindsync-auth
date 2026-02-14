@@ -10,6 +10,8 @@ import com.jitech.mindsync.repository.GendersRepository;
 import com.jitech.mindsync.repository.OccupationsRepository;
 import com.jitech.mindsync.repository.UserRepository;
 import com.jitech.mindsync.repository.WorkRemotesRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import java.util.Optional;
 
 @Service
 public class ProfileService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
 
     private final UserRepository userRepository;
     private final GendersRepository gendersRepository;
@@ -47,9 +51,14 @@ public class ProfileService {
     }
 
     public ProfileResponse getProfile(String email) {
+        logger.info("Fetching profile for email: {}", email);
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> {
+                    logger.error("Profile not found for email: {}", email);
+                    return new IllegalArgumentException("User not found");
+                });
 
+        logger.debug("Profile retrieved successfully for userId: {}", user.getUserId());
         return new ProfileResponse(
                 user.getUserId(),
                 user.getEmail(),
@@ -62,37 +71,56 @@ public class ProfileService {
 
     @Transactional
     public ProfileResponse updateProfile(String email, ProfileUpdateRequest request) {
+        logger.info("Starting profile update for email: {}", email);
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> {
+                    logger.error("Profile update failed - User not found for email: {}", email);
+                    return new IllegalArgumentException("User not found");
+                });
 
         // Update name if provided
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            logger.debug("Updating name for userId: {}", user.getUserId());
             user.setName(request.getName().trim());
         }
 
         // Update gender if provided
         if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
+            logger.debug("Updating gender to: {} for userId: {}", request.getGender(), user.getUserId());
             Genders gender = gendersRepository.findByGenderName(request.getGender().trim())
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid gender: " + request.getGender()));
+                    .orElseThrow(() -> {
+                        logger.error("Invalid gender provided: {}", request.getGender());
+                        return new IllegalArgumentException("Invalid gender: " + request.getGender());
+                    });
             user.setGender(gender);
         }
 
         // Update occupation if provided
         if (request.getOccupation() != null && !request.getOccupation().trim().isEmpty()) {
+            logger.debug("Updating occupation to: {} for userId: {}", request.getOccupation(), user.getUserId());
             Occupations occupation = occupationsRepository.findByOccupationName(request.getOccupation().trim())
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid occupation: " + request.getOccupation()));
+                    .orElseThrow(() -> {
+                        logger.error("Invalid occupation provided: {}", request.getOccupation());
+                        return new IllegalArgumentException("Invalid occupation: " + request.getOccupation());
+                    });
             user.setOccupation(occupation);
         }
 
         // Update work remote status if provided
         if (request.getWorkRmt() != null && !request.getWorkRmt().trim().isEmpty()) {
+            logger.debug("Updating work remote status to: {} for userId: {}", request.getWorkRmt(), user.getUserId());
             WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(request.getWorkRmt().trim())
                     .orElseThrow(
-                            () -> new IllegalArgumentException("Invalid work remote status: " + request.getWorkRmt()));
+                            () -> {
+                                logger.error("Invalid work remote status provided: {}", request.getWorkRmt());
+                                return new IllegalArgumentException(
+                                        "Invalid work remote status: " + request.getWorkRmt());
+                            });
             user.setWorkRmt(workRmt);
         }
 
         Users savedUser = userRepository.save(user);
+        logger.info("Profile updated successfully for userId: {}, email: {}", savedUser.getUserId(), email);
 
         return new ProfileResponse(
                 savedUser.getUserId(),
@@ -105,35 +133,49 @@ public class ProfileService {
     }
 
     public void requestPasswordReset(String email) {
+        logger.info("Password reset requested for email: {}", email);
         // Verify user exists - silently return if not found to prevent user enumeration
         Optional<Users> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             // Don't reveal whether user exists - just return silently
+            logger.warn("Password reset requested for non-existent email (user enumeration attack prevention): {}",
+                    email);
             return;
         }
 
+        logger.debug("User found, initiating OTP send for email: {}", email);
         // Send OTP
         otpService.sendOtp(email);
+        logger.info("Password reset OTP sent successfully for email: {}", email);
     }
 
     @Transactional
     public boolean changePassword(String email, String otp, String newPassword) {
+        logger.info("Password change attempt for email: {}", email);
+
         // Validate password strength
         if (newPassword == null || newPassword.length() < 8) {
+            logger.warn("Password change failed - Password too short for email: {}", email);
             throw new IllegalArgumentException("Password must be at least 8 characters");
         }
 
         // Validate and use OTP
+        logger.debug("Validating OTP for email: {}", email);
         if (!otpService.validateAndUseOtp(email, otp)) {
+            logger.warn("Password change failed - Invalid or expired OTP for email: {}", email);
             return false;
         }
 
         // Find user and update password
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> {
+                    logger.error("Password change failed - User not found for email: {}", email);
+                    return new IllegalArgumentException("User not found");
+                });
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        logger.info("Password changed successfully for userId: {}, email: {}", user.getUserId(), email);
 
         // Send confirmation email
         emailService.sendPasswordChangedEmail(email);
