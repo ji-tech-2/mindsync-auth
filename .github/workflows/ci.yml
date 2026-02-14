@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Run Tests and Quality Checks
+    name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -33,20 +33,29 @@ jobs:
             COVERED=$(tail -1 target/site/jacoco/jacoco.csv | cut -d',' -f8)
             MISSED=$(tail -1 target/site/jacoco/jacoco.csv | cut -d',' -f7)
             TOTAL=$((COVERED + MISSED))
-            echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
-            echo "COVERED=$COVERED" >> $GITHUB_ENV
-            echo "MISSED=$MISSED" >> $GITHUB_ENV
-            echo "TOTAL=$TOTAL" >> $GITHUB_ENV
+            echo "COVERAGE=$COVERAGE" >> "$GITHUB_ENV"
+            echo "COVERED=$COVERED" >> "$GITHUB_ENV"
+            echo "MISSED=$MISSED" >> "$GITHUB_ENV"
+            echo "TOTAL=$TOTAL" >> "$GITHUB_ENV"
+          else
+            echo "COVERAGE=0" >> "$GITHUB_ENV"
+            echo "COVERED=0" >> "$GITHUB_ENV"
+            echo "MISSED=0" >> "$GITHUB_ENV"
+            echo "TOTAL=0" >> "$GITHUB_ENV"
           fi
 
           # Extract PMD violations by priority
           if [ -f target/pmd.xml ]; then
-            P1_COUNT=$(grep -c 'priority="1"' target/pmd.xml || echo 0)
-            P2_COUNT=$(grep -c 'priority="2"' target/pmd.xml || echo 0)
-            P3_COUNT=$(grep -cE 'priority="[3-5]"' target/pmd.xml || echo 0)
-            echo "P1_VIOLATIONS=$P1_COUNT" >> $GITHUB_ENV
-            echo "P2_VIOLATIONS=$P2_COUNT" >> $GITHUB_ENV
-            echo "P3_VIOLATIONS=$P3_COUNT" >> $GITHUB_ENV
+            P1_COUNT=$(grep -c 'priority="1"' target/pmd.xml 2>/dev/null || echo 0)
+            P2_COUNT=$(grep -c 'priority="2"' target/pmd.xml 2>/dev/null || echo 0)
+            P3_COUNT=$(grep -cE 'priority="[3-5]"' target/pmd.xml 2>/dev/null || echo 0)
+            echo "P1_VIOLATIONS=$P1_COUNT" >> "$GITHUB_ENV"
+            echo "P2_VIOLATIONS=$P2_COUNT" >> "$GITHUB_ENV"
+            echo "P3_VIOLATIONS=$P3_COUNT" >> "$GITHUB_ENV"
+          else
+            echo "P1_VIOLATIONS=0" >> "$GITHUB_ENV"
+            echo "P2_VIOLATIONS=0" >> "$GITHUB_ENV"
+            echo "P3_VIOLATIONS=0" >> "$GITHUB_ENV"
           fi
 
       - name: Generate Job Summary
@@ -56,10 +65,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Coverage section
-          if [ -n "${{ env.COVERAGE }}" ]; then
-            COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${{ env.COVERAGE }}%25-brightgreen?style=flat)"
-            if (( $(echo "${{ env.COVERAGE }} < 80" | bc -l) )); then
-              COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${{ env.COVERAGE }}%25-red?style=flat)"
+          if [ -n "${{ env.COVERAGE }}" ] && [ "${{ env.COVERAGE }}" != "0" ]; then
+            COVERAGE_PCT="${{ env.COVERAGE }}"
+            if (( $(echo "$COVERAGE_PCT < 80" | bc -l) )); then
+              COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PCT}%25-red?style=flat)"
+              COVERAGE_STATUS="❌ FAILED"
+            else
+              COVERAGE_BADGE="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PCT}%25-brightgreen?style=flat)"
+              COVERAGE_STATUS="✅ PASSED"
             fi
             
             echo "## Code Coverage $COVERAGE_BADGE" >> $GITHUB_STEP_SUMMARY
@@ -71,23 +84,22 @@ jobs:
             echo "| Total Lines | ${{ env.TOTAL }} |" >> $GITHUB_STEP_SUMMARY
             echo "| Coverage % | ${{ env.COVERAGE }}% |" >> $GITHUB_STEP_SUMMARY
             echo "| Target | ≥ 80% |" >> $GITHUB_STEP_SUMMARY
-            
-            if (( $(echo "${{ env.COVERAGE }} >= 80" | bc -l) )); then
-              echo "| Status | ✅ PASSED |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| Status | ❌ FAILED |" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "| Status | $COVERAGE_STATUS |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
           # PMD section
           if [ -n "${{ env.P1_VIOLATIONS }}" ]; then
+            P1="${{ env.P1_VIOLATIONS }}"
+            P2="${{ env.P2_VIOLATIONS }}"
             echo "## Code Quality (PMD)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Priority | Count | Status |" >> $GITHUB_STEP_SUMMARY
             echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| 🔴 Blocker (P1) | ${{ env.P1_VIOLATIONS }} | $([ ${{ env.P1_VIOLATIONS }} -eq 0 ] && echo '✅' || echo '❌') |" >> $GITHUB_STEP_SUMMARY
-            echo "| 🟠 Critical (P2) | ${{ env.P2_VIOLATIONS }} | $([ ${{ env.P2_VIOLATIONS }} -eq 0 ] && echo '✅' || echo '❌') |" >> $GITHUB_STEP_SUMMARY
+            [ "$P1" -eq 0 ] && P1_STATUS="✅" || P1_STATUS="❌"
+            [ "$P2" -eq 0 ] && P2_STATUS="✅" || P2_STATUS="❌"
+            echo "| 🔴 Blocker (P1) | $P1 | $P1_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟠 Critical (P2) | $P2 | $P2_STATUS |" >> $GITHUB_STEP_SUMMARY
             echo "| 🟡 Warning (P3+) | ${{ env.P3_VIOLATIONS }} | ℹ️ (allowed) |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
