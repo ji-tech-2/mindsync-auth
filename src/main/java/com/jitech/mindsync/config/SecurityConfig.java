@@ -50,6 +50,7 @@ public class SecurityConfig {
                                                                 .policyDirectives("default-src 'self'")))
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .logout(logout -> logout.disable()) // Disable default logout to use custom endpoint
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/register", "/login", "/logout").permitAll() // Allow
                                                                                                                // auth
@@ -62,7 +63,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/test-verify-otp").permitAll() // test verify otp
                                                                                                  // endpoint
                                                 .requestMatchers("/h2-console/**").permitAll()
-                                                .requestMatchers("/actuator/**").permitAll() // Izinkan akses ke actuator untuk monitoring
+                                                .requestMatchers("/actuator/**").permitAll() // Izinkan akses ke
+                                                                                             // actuator untuk
+                                                                                             // monitoring
                                                 .anyRequest().authenticated());
 
                 http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
