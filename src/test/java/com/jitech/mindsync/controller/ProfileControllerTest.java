@@ -27,247 +27,269 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class ProfileControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @MockBean
-    private ProfileService profileService;
+        @MockBean
+        private ProfileService profileService;
 
-    @MockBean
-    private JwtProvider jwtProvider;
+        @MockBean
+        private JwtProvider jwtProvider;
 
-    private ProfileResponse sampleProfile;
-    private ProfileUpdateRequest updateRequest;
+        private ProfileResponse sampleProfile;
+        private ProfileUpdateRequest updateRequest;
 
-    @BeforeEach
-    void setUp() {
-        sampleProfile = new ProfileResponse();
-        sampleProfile.setEmail("test@example.com");
-        sampleProfile.setName("John Doe");
-        sampleProfile.setGender("MALE");
-        sampleProfile.setOccupation("SOFTWARE_ENGINEER");
+        @BeforeEach
+        void setUp() {
+                sampleProfile = new ProfileResponse();
+                sampleProfile.setEmail("test@example.com");
+                sampleProfile.setName("John Doe");
+                sampleProfile.setGender("MALE");
+                sampleProfile.setOccupation("SOFTWARE_ENGINEER");
 
-        updateRequest = new ProfileUpdateRequest();
-        updateRequest.setName("Jane Smith");
-        updateRequest.setGender("FEMALE");
-        updateRequest.setOccupation("DATA_SCIENTIST");
-    }
+                updateRequest = new ProfileUpdateRequest();
+                updateRequest.setName("Jane Smith");
+                updateRequest.setGender("FEMALE");
+                updateRequest.setOccupation("DATA_SCIENTIST");
+        }
 
-    @Test
-    @WithMockUser(username = "test@example.com")
-    void getProfile_Success() throws Exception {
-        when(profileService.getProfile("test@example.com")).thenReturn(sampleProfile);
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void getProfile_Success() throws Exception {
+                when(profileService.getProfile("test@example.com")).thenReturn(sampleProfile);
 
-        mockMvc.perform(get("/profile")
-                .with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.email").value("test@example.com"))
-                .andExpect(jsonPath("$.data.name").value("John Doe"))
-                .andExpect(jsonPath("$.data.gender").value("MALE"))
-                .andExpect(jsonPath("$.data.occupation").value("SOFTWARE_ENGINEER"));
+                mockMvc.perform(get("/profile")
+                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.email").value("test@example.com"))
+                                .andExpect(jsonPath("$.data.name").value("John Doe"))
+                                .andExpect(jsonPath("$.data.gender").value("MALE"))
+                                .andExpect(jsonPath("$.data.occupation").value("SOFTWARE_ENGINEER"));
 
-        verify(profileService).getProfile("test@example.com");
-    }
+                verify(profileService).getProfile("test@example.com");
+        }
 
-    @Test
-    @WithMockUser(username = "test@example.com")
-    void getProfile_UserNotFound() throws Exception {
-        when(profileService.getProfile("test@example.com"))
-                .thenThrow(new IllegalArgumentException("User not found"));
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void getProfile_UserNotFound() throws Exception {
+                when(profileService.getProfile("test@example.com"))
+                                .thenThrow(new IllegalArgumentException("User not found"));
 
-        mockMvc.perform(get("/profile")
-                .with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("User not found"));
+                mockMvc.perform(get("/profile")
+                                .with(csrf()))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("User not found"));
 
-        verify(profileService).getProfile("test@example.com");
-    }
+                verify(profileService).getProfile("test@example.com");
+        }
 
-    @Test
-    @WithMockUser(username = "test@example.com")
-    void updateProfile_Success() throws Exception {
-        ProfileResponse updatedProfile = new ProfileResponse();
-        updatedProfile.setEmail("test@example.com");
-        updatedProfile.setName("Jane Smith");
-        updatedProfile.setGender("FEMALE");
-        updatedProfile.setOccupation("DATA_SCIENTIST");
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void updateProfile_Success() throws Exception {
+                ProfileResponse updatedProfile = new ProfileResponse();
+                updatedProfile.setEmail("test@example.com");
+                updatedProfile.setName("Jane Smith");
+                updatedProfile.setGender("FEMALE");
+                updatedProfile.setOccupation("DATA_SCIENTIST");
 
-        when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
-                .thenReturn(updatedProfile);
+                when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
+                                .thenReturn(updatedProfile);
 
-        mockMvc.perform(put("/profile")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Profile updated successfully"))
-                .andExpect(jsonPath("$.data.name").value("Jane Smith"))
-                .andExpect(jsonPath("$.data.gender").value("FEMALE"))
-                .andExpect(jsonPath("$.data.occupation").value("DATA_SCIENTIST"));
+                mockMvc.perform(put("/profile")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Profile updated successfully"))
+                                .andExpect(jsonPath("$.data.name").value("Jane Smith"))
+                                .andExpect(jsonPath("$.data.gender").value("FEMALE"))
+                                .andExpect(jsonPath("$.data.occupation").value("DATA_SCIENTIST"));
 
-        verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
-    }
+                verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
+        }
 
-    @Test
-    @WithMockUser(username = "test@example.com")
-    void updateProfile_InvalidData() throws Exception {
-        when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
-                .thenThrow(new IllegalArgumentException("Invalid gender value"));
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void updateProfile_InvalidData() throws Exception {
+                when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
+                                .thenThrow(new IllegalArgumentException("Invalid gender value"));
 
-        mockMvc.perform(put("/profile")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Invalid gender value"));
+                mockMvc.perform(put("/profile")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Invalid gender value"));
 
-        verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
-    }
+                verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
+        }
 
-    @Test
-    void requestOtp_Success() throws Exception {
-        OtpRequest otpRequest = new OtpRequest();
-        otpRequest.setEmail("test@example.com");
+        @Test
+        void requestOtp_Success() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("test@example.com");
 
-        doNothing().when(profileService).requestPasswordReset("test@example.com");
+                doNothing().when(profileService).requestPasswordReset("test@example.com");
 
-        mockMvc.perform(post("/profile/request-otp")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(otpRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("OTP has been sent to your email"));
+                mockMvc.perform(post("/profile/request-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("OTP has been sent to your email"));
 
-        verify(profileService).requestPasswordReset("test@example.com");
-    }
+                verify(profileService).requestPasswordReset("test@example.com");
+        }
 
-    @Test
-    void requestOtp_UserNotFound() throws Exception {
-        OtpRequest otpRequest = new OtpRequest();
-        otpRequest.setEmail("nonexistent@example.com");
+        @Test
+        void requestOtp_UserNotFound() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("nonexistent@example.com");
 
-        doThrow(new IllegalArgumentException("User not found"))
-                .when(profileService).requestPasswordReset("nonexistent@example.com");
+                doThrow(new IllegalArgumentException("User not found"))
+                                .when(profileService).requestPasswordReset("nonexistent@example.com");
 
-        mockMvc.perform(post("/profile/request-otp")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(otpRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("User not found"));
+                mockMvc.perform(post("/profile/request-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("User not found"));
 
-        verify(profileService).requestPasswordReset("nonexistent@example.com");
-    }
+                verify(profileService).requestPasswordReset("nonexistent@example.com");
+        }
 
-    @Test
-    void requestOtp_EmailSendingFailure() throws Exception {
-        OtpRequest otpRequest = new OtpRequest();
-        otpRequest.setEmail("test@example.com");
+        @Test
+        void requestOtp_EmailSendingFailure() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("test@example.com");
 
-        doThrow(new RuntimeException("Email service unavailable"))
-                .when(profileService).requestPasswordReset("test@example.com");
+                doThrow(new RuntimeException("Email service unavailable"))
+                                .when(profileService).requestPasswordReset("test@example.com");
 
-        mockMvc.perform(post("/profile/request-otp")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(otpRequest)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Failed to send OTP. Please try again later."));
+                mockMvc.perform(post("/profile/request-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isInternalServerError())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Failed to send OTP. Please try again later."));
 
-        verify(profileService).requestPasswordReset("test@example.com");
-    }
+                verify(profileService).requestPasswordReset("test@example.com");
+        }
 
-    @Test
-    void changePassword_Success() throws Exception {
-        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
-        changePasswordRequest.setEmail("test@example.com");
-        changePasswordRequest.setOtp("123456");
-        changePasswordRequest.setNewPassword("newPassword123!");
+        @Test
+        void resetPassword_Success() throws Exception {
+                ResetPasswordRequest resetPasswordRequest = new ResetPasswordRequest();
+                resetPasswordRequest.setEmail("test@example.com");
+                resetPasswordRequest.setOtp("123456");
+                resetPasswordRequest.setNewPassword("newPassword123!");
 
-        when(profileService.changePassword("test@example.com", "123456", "newPassword123!"))
-                .thenReturn(true);
+                when(profileService.resetPassword("test@example.com", "123456", "newPassword123!"))
+                                .thenReturn(true);
 
-        mockMvc.perform(post("/profile/change-password")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changePasswordRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Password changed successfully"));
+                mockMvc.perform(post("/profile/reset-password")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetPasswordRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Password reset successfully"));
 
-        verify(profileService).changePassword("test@example.com", "123456", "newPassword123!");
-    }
+                verify(profileService).resetPassword("test@example.com", "123456", "newPassword123!");
+        }
 
-    @Test
-    void changePassword_InvalidOtp() throws Exception {
-        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
-        changePasswordRequest.setEmail("test@example.com");
-        changePasswordRequest.setOtp("999999");
-        changePasswordRequest.setNewPassword("newPassword123!");
+        @Test
+        void resetPassword_InvalidOtp() throws Exception {
+                ResetPasswordRequest resetPasswordRequest = new ResetPasswordRequest();
+                resetPasswordRequest.setEmail("test@example.com");
+                resetPasswordRequest.setOtp("999999");
+                resetPasswordRequest.setNewPassword("newPassword123!");
 
-        when(profileService.changePassword("test@example.com", "999999", "newPassword123!"))
-                .thenReturn(false);
+                when(profileService.resetPassword("test@example.com", "999999", "newPassword123!"))
+                                .thenReturn(false);
 
-        mockMvc.perform(post("/profile/change-password")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changePasswordRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Invalid or expired OTP. Please request a new one."));
+                mockMvc.perform(post("/profile/reset-password")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetPasswordRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message")
+                                                .value("Invalid or expired OTP. Please request a new one."));
 
-        verify(profileService).changePassword("test@example.com", "999999", "newPassword123!");
-    }
+                verify(profileService).resetPassword("test@example.com", "999999", "newPassword123!");
+        }
 
-    @Test
-    void changePassword_UserNotFound() throws Exception {
-        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
-        changePasswordRequest.setEmail("nonexistent@example.com");
-        changePasswordRequest.setOtp("123456");
-        changePasswordRequest.setNewPassword("newPassword123!");
+        @Test
+        void resetPassword_UserNotFound() throws Exception {
+                ResetPasswordRequest resetPasswordRequest = new ResetPasswordRequest();
+                resetPasswordRequest.setEmail("nonexistent@example.com");
+                resetPasswordRequest.setOtp("123456");
+                resetPasswordRequest.setNewPassword("newPassword123!");
 
-        when(profileService.changePassword("nonexistent@example.com", "123456", "newPassword123!"))
-                .thenThrow(new IllegalArgumentException("User not found"));
+                when(profileService.resetPassword("nonexistent@example.com", "123456", "newPassword123!"))
+                                .thenThrow(new IllegalArgumentException("User not found"));
 
-        mockMvc.perform(post("/profile/change-password")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changePasswordRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("User not found"));
+                mockMvc.perform(post("/profile/reset-password")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetPasswordRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("User not found"));
 
-        verify(profileService).changePassword("nonexistent@example.com", "123456", "newPassword123!");
-    }
+                verify(profileService).resetPassword("nonexistent@example.com", "123456", "newPassword123!");
+        }
 
-    @Test
-    void changePassword_InvalidPassword() throws Exception {
-        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
-        changePasswordRequest.setEmail("test@example.com");
-        changePasswordRequest.setOtp("123456");
-        changePasswordRequest.setNewPassword("weak");
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void changePassword_Success() throws Exception {
+                ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
+                changePasswordRequest.setOldPassword("oldPassword123!");
+                changePasswordRequest.setNewPassword("newPassword123!");
 
-        when(profileService.changePassword("test@example.com", "123456", "weak"))
-                .thenThrow(new IllegalArgumentException("Password must be at least 8 characters"));
+                when(profileService.changePassword("test@example.com", "oldPassword123!", "newPassword123!"))
+                                .thenReturn(true);
 
-        mockMvc.perform(post("/profile/change-password")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changePasswordRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Password must be at least 8 characters"));
+                mockMvc.perform(post("/profile/change-password")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changePasswordRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Password changed successfully"));
 
-        verify(profileService).changePassword("test@example.com", "123456", "weak");
-    }
+                verify(profileService).changePassword("test@example.com", "oldPassword123!", "newPassword123!");
+        }
+
+        @Test
+        @WithMockUser(username = "test@example.com")
+        void changePassword_IncorrectOldPassword() throws Exception {
+                ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
+                changePasswordRequest.setOldPassword("wrongPassword");
+                changePasswordRequest.setNewPassword("newPassword123!");
+
+                when(profileService.changePassword("test@example.com", "wrongPassword", "newPassword123!"))
+                                .thenReturn(false);
+
+                mockMvc.perform(post("/profile/change-password")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changePasswordRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Incorrect old password"));
+
+                verify(profileService).changePassword("test@example.com", "wrongPassword", "newPassword123!");
+        }
 }

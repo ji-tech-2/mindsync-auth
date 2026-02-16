@@ -326,12 +326,12 @@ class ProfileServiceTest {
     }
 
     @Nested
-    @DisplayName("Change Password Tests")
-    class ChangePasswordTests {
+    @DisplayName("Reset Password Tests")
+    class ResetPasswordTests {
 
         @Test
-        @DisplayName("Should change password with valid OTP")
-        void changePassword_WithValidOtp_ShouldChangePassword() {
+        @DisplayName("Should reset password with valid OTP")
+        void resetPassword_WithValidOtp_ShouldResetPassword() {
             // Given
             when(otpService.validateAndUseOtp("test@example.com", "123456")).thenReturn(true);
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
@@ -339,7 +339,7 @@ class ProfileServiceTest {
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
 
             // When
-            boolean result = profileService.changePassword("test@example.com", "123456", "newPassword123");
+            boolean result = profileService.resetPassword("test@example.com", "123456", "newPassword123");
 
             // Then
             assertTrue(result);
@@ -350,12 +350,89 @@ class ProfileServiceTest {
 
         @Test
         @DisplayName("Should return false with invalid OTP")
-        void changePassword_WithInvalidOtp_ShouldReturnFalse() {
+        void resetPassword_WithInvalidOtp_ShouldReturnFalse() {
             // Given
             when(otpService.validateAndUseOtp("test@example.com", "wrong")).thenReturn(false);
 
             // When
-            boolean result = profileService.changePassword("test@example.com", "wrong", "newPassword123");
+            boolean result = profileService.resetPassword("test@example.com", "wrong", "newPassword123");
+
+            // Then
+            assertFalse(result);
+            verify(userRepository, never()).save(any(Users.class));
+            verify(emailService, never()).sendPasswordChangedEmail(anyString());
+        }
+
+        @Test
+        @DisplayName("Should throw exception for short password")
+        void resetPassword_WithShortPassword_ShouldThrowException() {
+            // When/Then
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> profileService.resetPassword("test@example.com", "123456", "short"));
+
+            assertEquals("Password must be at least 8 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should throw exception for null password")
+        void resetPassword_WithNullPassword_ShouldThrowException() {
+            // When/Then
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> profileService.resetPassword("test@example.com", "123456", null));
+
+            assertEquals("Password must be at least 8 characters", exception.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should throw exception when user not found")
+        void resetPassword_WithNonExistentUser_ShouldThrowException() {
+            // Given
+            when(otpService.validateAndUseOtp("nonexistent@example.com", "123456")).thenReturn(true);
+            when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+            // When/Then
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> profileService.resetPassword("nonexistent@example.com", "123456", "newPassword123"));
+
+            assertEquals("User not found", exception.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("Change Password Tests")
+    class ChangePasswordTests {
+
+        @Test
+        @DisplayName("Should change password with valid old password")
+        void changePassword_WithValidOldPassword_ShouldChangePassword() {
+            // Given
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches("oldPassword123", "hashedPassword")).thenReturn(true);
+            when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
+            when(userRepository.save(any(Users.class))).thenReturn(testUser);
+
+            // When
+            boolean result = profileService.changePassword("test@example.com", "oldPassword123", "newPassword123");
+
+            // Then
+            assertTrue(result);
+            verify(passwordEncoder, times(1)).matches("oldPassword123", "hashedPassword");
+            verify(userRepository, times(1)).save(testUser);
+            verify(emailService, times(1)).sendPasswordChangedEmail("test@example.com");
+        }
+
+        @Test
+        @DisplayName("Should return false with incorrect old password")
+        void changePassword_WithIncorrectOldPassword_ShouldReturnFalse() {
+            // Given
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
+
+            // When
+            boolean result = profileService.changePassword("test@example.com", "wrongPassword", "newPassword123");
 
             // Then
             assertFalse(result);
@@ -369,7 +446,7 @@ class ProfileServiceTest {
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("test@example.com", "123456", "short"));
+                    () -> profileService.changePassword("test@example.com", "oldPassword123", "short"));
 
             assertEquals("Password must be at least 8 characters", exception.getMessage());
         }
@@ -380,7 +457,7 @@ class ProfileServiceTest {
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("test@example.com", "123456", null));
+                    () -> profileService.changePassword("test@example.com", "oldPassword123", null));
 
             assertEquals("Password must be at least 8 characters", exception.getMessage());
         }
@@ -389,13 +466,12 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception when user not found")
         void changePassword_WithNonExistentUser_ShouldThrowException() {
             // Given
-            when(otpService.validateAndUseOtp("nonexistent@example.com", "123456")).thenReturn(true);
             when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("nonexistent@example.com", "123456", "newPassword123"));
+                    () -> profileService.changePassword("nonexistent@example.com", "oldPassword123", "newPassword123"));
 
             assertEquals("User not found", exception.getMessage());
         }

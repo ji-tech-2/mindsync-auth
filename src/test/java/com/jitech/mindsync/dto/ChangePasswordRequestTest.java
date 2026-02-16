@@ -15,12 +15,10 @@ class ChangePasswordRequestTest {
     @Test
     void testAllArgConstructor() {
         ChangePasswordRequest request = new ChangePasswordRequest(
-                "test@example.com",
-                "123456",
+                "oldPassword123",
                 "newPassword123");
 
-        assertEquals("test@example.com", request.getEmail());
-        assertEquals("123456", request.getOtp());
+        assertEquals("oldPassword123", request.getOldPassword());
         assertEquals("newPassword123", request.getNewPassword());
     }
 
@@ -28,27 +26,18 @@ class ChangePasswordRequestTest {
     void testSetterAndGetter() {
         ChangePasswordRequest request = new ChangePasswordRequest();
 
-        request.setEmail("user@example.com");
-        request.setOtp("987654");
+        request.setOldPassword("currentPassword456");
         request.setNewPassword("securePassword456");
 
-        assertEquals("user@example.com", request.getEmail());
-        assertEquals("987654", request.getOtp());
+        assertEquals("currentPassword456", request.getOldPassword());
         assertEquals("securePassword456", request.getNewPassword());
     }
 
     @Test
-    void testEmailSetterWithNull() {
+    void testOldPasswordSetterWithNull() {
         ChangePasswordRequest request = new ChangePasswordRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
-    }
-
-    @Test
-    void testOtpSetterWithNull() {
-        ChangePasswordRequest request = new ChangePasswordRequest();
-        request.setOtp(null);
-        assertNull(request.getOtp());
+        request.setOldPassword(null);
+        assertNull(request.getOldPassword());
     }
 
     @Test

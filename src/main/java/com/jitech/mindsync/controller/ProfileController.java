@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.Map;
 
 @RestController
@@ -103,34 +104,65 @@ public class ProfileController {
     }
 
     /**
-     * Change password using OTP
+     * Reset password using OTP
      * Public endpoint - no token required
      */
-    @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
-        logger.info("POST /profile/change-password - Password change request received for email: {}",
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        logger.info("POST /profile/reset-password - Password reset request received for email: {}",
                 request.getEmail());
         try {
-            boolean success = profileService.changePassword(
+            boolean success = profileService.resetPassword(
                     request.getEmail(),
                     request.getOtp(),
                     request.getNewPassword());
 
             if (success) {
-                logger.info("POST /profile/change-password - Password changed successfully for email: {}",
+                logger.info("POST /profile/reset-password - Password reset successfully for email: {}",
                         request.getEmail());
                 return ResponseEntity.ok(Map.of(
                         "success", true,
-                        "message", "Password changed successfully"));
+                        "message", "Password reset successfully"));
             } else {
-                logger.warn("POST /profile/change-password - Invalid OTP for email: {}", request.getEmail());
+                logger.warn("POST /profile/reset-password - Invalid OTP for email: {}", request.getEmail());
                 return ResponseEntity.badRequest().body(Map.of(
                         "success", false,
                         "message", "Invalid or expired OTP. Please request a new one."));
             }
         } catch (IllegalArgumentException e) {
-            logger.warn("POST /profile/change-password - Request failed for email: {}. Reason: {}",
+            logger.warn("POST /profile/reset-password - Request failed for email: {}. Reason: {}",
                     request.getEmail(), e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Change password for authenticated user
+     * Requires: JWT cookie (automatically handled by JwtAuthenticationFilter)
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            logger.info("POST /profile/change-password - Password change request received for email: {}", email);
+
+            boolean success = profileService.changePassword(email, request.getOldPassword(), request.getNewPassword());
+
+            if (success) {
+                logger.info("POST /profile/change-password - Password changed successfully for email: {}", email);
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "message", "Password changed successfully"));
+            } else {
+                logger.warn("POST /profile/change-password - Incorrect old password for email: {}", email);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Incorrect old password"));
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("POST /profile/change-password - Request failed. Reason: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", e.getMessage()));
