@@ -84,6 +84,12 @@ public class ProfileService {
             user.setName(request.getName().trim());
         }
 
+        // Update dob if provided
+        if (request.getDob() != null) {
+            logger.debug("Updating dob to: {} for userId: {}", request.getDob(), user.getUserId());
+            user.setDob(request.getDob());
+        }
+
         // Update gender if provided
         if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
             logger.debug("Updating gender to: {} for userId: {}", request.getGender(), user.getUserId());
