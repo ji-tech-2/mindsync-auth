@@ -1,6 +1,7 @@
 package com.jitech.mindsync.service;
 
 import com.jitech.mindsync.model.OtpToken;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.repository.OtpTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -78,10 +79,10 @@ class OtpServiceTest {
             when(passwordEncoder.encode(anyString())).thenReturn("hashedOtp");
 
             // When
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
 
             // Then
-            verify(otpTokenRepository, times(1)).deleteByEmail(email);
+            verify(otpTokenRepository, times(1)).deleteByEmailAndOtpType(email, OtpType.PASSWORD_RESET);
             verify(otpTokenRepository, times(1)).save(any(OtpToken.class));
             verify(emailService, times(1)).sendOtpEmail(eq(email), anyString());
         }
@@ -94,10 +95,10 @@ class OtpServiceTest {
             when(passwordEncoder.encode(anyString())).thenReturn("hashedOtp");
 
             // When
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.SIGNUP);
 
             // Then
-            verify(otpTokenRepository, times(1)).deleteByEmail(email);
+            verify(otpTokenRepository, times(1)).deleteByEmailAndOtpType(email, OtpType.SIGNUP);
         }
 
         @Test
@@ -110,7 +111,7 @@ class OtpServiceTest {
             ArgumentCaptor<OtpToken> tokenCaptor = ArgumentCaptor.forClass(OtpToken.class);
 
             // When
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
 
             // Then
             verify(otpTokenRepository).save(tokenCaptor.capture());
@@ -118,6 +119,7 @@ class OtpServiceTest {
 
             assertNotNull(savedToken);
             assertEquals(email, savedToken.getEmail());
+            assertEquals(OtpType.PASSWORD_RESET, savedToken.getOtpType());
             assertNotNull(savedToken.getCreatedAt());
             assertNotNull(savedToken.getExpiresAt());
             assertTrue(savedToken.getExpiresAt().isAfter(savedToken.getCreatedAt()));
@@ -134,7 +136,7 @@ class OtpServiceTest {
             ArgumentCaptor<OtpToken> tokenCaptor = ArgumentCaptor.forClass(OtpToken.class);
 
             // When
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.SIGNUP);
 
             // Then
             verify(passwordEncoder, times(1)).encode(anyString());
@@ -150,14 +152,14 @@ class OtpServiceTest {
             when(passwordEncoder.encode(anyString())).thenReturn("hashedOtp");
 
             // When - Send 3 OTPs (should succeed)
-            otpService.sendOtp(email);
-            otpService.sendOtp(email);
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
 
             // Then - 4th attempt should fail
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> otpService.sendOtp(email));
+                    () -> otpService.sendOtp(email, OtpType.PASSWORD_RESET));
 
             assertTrue(exception.getMessage().contains("Too many OTP requests"));
         }
@@ -178,15 +180,17 @@ class OtpServiceTest {
             OtpToken otpToken = new OtpToken(
                     email,
                     hashedOtp,
+                    OtpType.PASSWORD_RESET,
                     LocalDateTime.now(),
                     LocalDateTime.now().plusMinutes(10));
             otpToken.setUsed(false);
 
-            when(otpTokenRepository.findByEmailAndIsUsedFalse(email)).thenReturn(Optional.of(otpToken));
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
             when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(true);
 
             // When
-            boolean result = otpService.validateAndUseOtp(email, otpCode);
+            boolean result = otpService.validateAndUseOtp(email, otpCode, OtpType.PASSWORD_RESET);
 
             // Then
             assertTrue(result);
@@ -205,15 +209,17 @@ class OtpServiceTest {
             OtpToken otpToken = new OtpToken(
                     email,
                     hashedOtp,
+                    OtpType.SIGNUP,
                     LocalDateTime.now(),
                     LocalDateTime.now().plusMinutes(10));
             otpToken.setUsed(false);
 
-            when(otpTokenRepository.findByEmailAndIsUsedFalse(email)).thenReturn(Optional.of(otpToken));
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.SIGNUP))
+                    .thenReturn(Optional.of(otpToken));
             when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(false);
 
             // When
-            boolean result = otpService.validateAndUseOtp(email, otpCode);
+            boolean result = otpService.validateAndUseOtp(email, otpCode, OtpType.SIGNUP);
 
             // Then
             assertFalse(result);
@@ -225,10 +231,11 @@ class OtpServiceTest {
         void validateAndUseOtp_WithNoUnusedOtp_ShouldReturnFalse() {
             // Given
             String email = "test@example.com";
-            when(otpTokenRepository.findByEmailAndIsUsedFalse(email)).thenReturn(Optional.empty());
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.empty());
 
             // When
-            boolean result = otpService.validateAndUseOtp(email, "123456");
+            boolean result = otpService.validateAndUseOtp(email, "123456", OtpType.PASSWORD_RESET);
 
             // Then
             assertFalse(result);
@@ -245,14 +252,16 @@ class OtpServiceTest {
             OtpToken otpToken = new OtpToken(
                     email,
                     "hashedOtp",
+                    OtpType.SIGNUP,
                     LocalDateTime.now().minusMinutes(20),
                     LocalDateTime.now().minusMinutes(10)); // Expired 10 minutes ago
             otpToken.setUsed(false);
 
-            when(otpTokenRepository.findByEmailAndIsUsedFalse(email)).thenReturn(Optional.of(otpToken));
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.SIGNUP))
+                    .thenReturn(Optional.of(otpToken));
 
             // When
-            boolean result = otpService.validateAndUseOtp(email, otpCode);
+            boolean result = otpService.validateAndUseOtp(email, otpCode, OtpType.SIGNUP);
 
             // Then
             assertFalse(result);
@@ -270,17 +279,19 @@ class OtpServiceTest {
             OtpToken otpToken = new OtpToken(
                     email,
                     hashedOtp,
+                    OtpType.PASSWORD_RESET,
                     LocalDateTime.now(),
                     LocalDateTime.now().plusMinutes(10));
             otpToken.setUsed(false);
 
-            when(otpTokenRepository.findByEmailAndIsUsedFalse(email)).thenReturn(Optional.of(otpToken));
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
             when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(true);
 
             ArgumentCaptor<OtpToken> tokenCaptor = ArgumentCaptor.forClass(OtpToken.class);
 
             // When
-            otpService.validateAndUseOtp(email, otpCode);
+            otpService.validateAndUseOtp(email, otpCode, OtpType.PASSWORD_RESET);
 
             // Then
             verify(otpTokenRepository).save(tokenCaptor.capture());

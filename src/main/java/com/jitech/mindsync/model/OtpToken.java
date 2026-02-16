@@ -18,6 +18,10 @@ public class OtpToken {
     @Column(name = "otp_code", nullable = false)
     private String otpCode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "otp_type", nullable = false)
+    private OtpType otpType;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -30,9 +34,11 @@ public class OtpToken {
     public OtpToken() {
     }
 
-    public OtpToken(String email, String otpCode, LocalDateTime createdAt, LocalDateTime expiresAt) {
+    public OtpToken(String email, String otpCode, OtpType otpType,
+            LocalDateTime createdAt, LocalDateTime expiresAt) {
         this.email = email;
         this.otpCode = otpCode;
+        this.otpType = otpType;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
         this.isUsed = false;
@@ -49,6 +55,10 @@ public class OtpToken {
 
     public String getOtpCode() {
         return otpCode;
+    }
+
+    public OtpType getOtpType() {
+        return otpType;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -74,6 +84,10 @@ public class OtpToken {
 
     public void setOtpCode(String otpCode) {
         this.otpCode = otpCode;
+    }
+
+    public void setOtpType(OtpType otpType) {
+        this.otpType = otpType;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

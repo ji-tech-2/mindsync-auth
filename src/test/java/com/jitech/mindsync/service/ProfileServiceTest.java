@@ -4,6 +4,7 @@ import com.jitech.mindsync.dto.ProfileResponse;
 import com.jitech.mindsync.dto.ProfileUpdateRequest;
 import com.jitech.mindsync.model.Genders;
 import com.jitech.mindsync.model.Occupations;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.model.WorkRemotes;
 import com.jitech.mindsync.repository.GendersRepository;
@@ -310,7 +311,7 @@ class ProfileServiceTest {
             profileService.requestPasswordReset("test@example.com");
 
             // Then
-            verify(otpService, times(1)).sendOtp("test@example.com");
+            verify(otpService, times(1)).sendOtp("test@example.com", OtpType.PASSWORD_RESET);
         }
 
         @Test
@@ -321,7 +322,7 @@ class ProfileServiceTest {
 
             // When/Then - should not throw to prevent user enumeration
             assertDoesNotThrow(() -> profileService.requestPasswordReset("nonexistent@example.com"));
-            verify(otpService, never()).sendOtp(anyString());
+            verify(otpService, never()).sendOtp(anyString(), any(OtpType.class));
         }
     }
 
@@ -333,7 +334,8 @@ class ProfileServiceTest {
         @DisplayName("Should reset password with valid OTP")
         void resetPassword_WithValidOtp_ShouldResetPassword() {
             // Given
-            when(otpService.validateAndUseOtp("test@example.com", "123456")).thenReturn(true);
+            when(otpService.validateAndUseOtp("test@example.com", "123456", OtpType.PASSWORD_RESET))
+                    .thenReturn(true);
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
             when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
@@ -343,7 +345,7 @@ class ProfileServiceTest {
 
             // Then
             assertTrue(result);
-            verify(otpService, times(1)).validateAndUseOtp("test@example.com", "123456");
+            verify(otpService, times(1)).validateAndUseOtp("test@example.com", "123456", OtpType.PASSWORD_RESET);
             verify(userRepository, times(1)).save(testUser);
             verify(emailService, times(1)).sendPasswordChangedEmail("test@example.com");
         }
@@ -352,7 +354,8 @@ class ProfileServiceTest {
         @DisplayName("Should return false with invalid OTP")
         void resetPassword_WithInvalidOtp_ShouldReturnFalse() {
             // Given
-            when(otpService.validateAndUseOtp("test@example.com", "wrong")).thenReturn(false);
+            when(otpService.validateAndUseOtp("test@example.com", "wrong", OtpType.PASSWORD_RESET))
+                    .thenReturn(false);
 
             // When
             boolean result = profileService.resetPassword("test@example.com", "wrong", "newPassword123");
@@ -389,7 +392,8 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception when user not found")
         void resetPassword_WithNonExistentUser_ShouldThrowException() {
             // Given
-            when(otpService.validateAndUseOtp("nonexistent@example.com", "123456")).thenReturn(true);
+            when(otpService.validateAndUseOtp("nonexistent@example.com", "123456", OtpType.PASSWORD_RESET))
+                    .thenReturn(true);
             when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
             // When/Then

@@ -1,5 +1,6 @@
 package com.jitech.mindsync.controller;
 
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.service.EmailService;
 import com.jitech.mindsync.service.OtpService;
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ public class EmailTestController {
     private EmailService emailService;
     @Autowired
     private OtpService otpService;
-    
+
     @GetMapping("/test-email")
     public String sendTestEmail(@RequestParam String to) {
         // tujuan ini cuma buat ngesend message doang sebenarnya
@@ -39,7 +40,7 @@ public class EmailTestController {
     public String sendTestOtp(@RequestParam String email) {
         try {
             logger.info("Sending OTP to {}", email);
-            otpService.sendOtp(email);
+            otpService.sendOtp(email, OtpType.PASSWORD_RESET);
             return "OTP sent successfully to " + email;
         } catch (Exception e) {
             return "Failed to send OTP: " + e.getMessage();

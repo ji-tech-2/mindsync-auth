@@ -1,6 +1,7 @@
 package com.jitech.mindsync.service;
 
 import com.jitech.mindsync.model.OtpToken;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.repository.OtpTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,43 +95,45 @@ public class OtpService {
     }
 
     @Transactional
-    public void sendOtp(String email) {
-        logger.info("Starting OTP send process for email: {}", email);
+    public void sendOtp(String email, OtpType otpType) {
+        logger.info("Starting OTP send process for email: {}, type: {}", email, otpType);
 
         // Check rate limit before proceeding
         checkRateLimit(email);
 
-        // Clean up old OTP tokens for this email before creating a new one
-        logger.debug("Cleaning up old OTP tokens for email: {}", email);
-        otpTokenRepository.deleteByEmail(email);
+        // Clean up old OTP tokens for this email and type before creating a new one
+        logger.debug("Cleaning up old OTP tokens for email: {}, type: {}", email, otpType);
+        otpTokenRepository.deleteByEmailAndOtpType(email, otpType);
 
         // Generate new OTP
         String otpCode = generateOtp();
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiresAt = now.plusMinutes(OTP_EXPIRY_MINUTES);
-        logger.debug("OTP generated for email: {}, expires at: {}", email, expiresAt);
+        logger.debug("OTP generated for email: {}, type: {}, expires at: {}",
+                email, otpType, expiresAt);
 
         // Create and save OTP token with hashed OTP code
         String hashedOtp = passwordEncoder.encode(otpCode);
-        OtpToken otpToken = new OtpToken(email, hashedOtp, now, expiresAt);
+        OtpToken otpToken = new OtpToken(email, hashedOtp, otpType, now, expiresAt);
         otpTokenRepository.save(otpToken);
-        logger.debug("OTP token saved to database for email: {}", email);
+        logger.debug("OTP token saved to database for email: {}, type: {}", email, otpType);
 
         // Send plain OTP via email (user needs the original code)
         emailService.sendOtpEmail(email, otpCode);
-        logger.info("OTP process completed successfully for email: {}", email);
+        logger.info("OTP process completed successfully for email: {}, type: {}", email, otpType);
     }
 
     @Transactional
-    public boolean validateAndUseOtp(String email, String otpCode) {
-        logger.info("Starting OTP validation for email: {}", email);
+    public boolean validateAndUseOtp(String email, String otpCode, OtpType otpType) {
+        logger.info("Starting OTP validation for email: {}, type: {}", email, otpType);
 
-        // Find unused OTP for this email
+        // Find unused OTP for this email and type
         Optional<OtpToken> otpTokenOpt = otpTokenRepository
-                .findByEmailAndIsUsedFalse(email);
+                .findByEmailAndOtpTypeAndIsUsedFalse(email, otpType);
 
         if (otpTokenOpt.isEmpty()) {
-            logger.warn("OTP validation failed - No unused OTP found for email: {}", email);
+            logger.warn("OTP validation failed - No unused OTP found for email: {}, type: {}",
+                    email, otpType);
             return false;
         }
 
@@ -138,21 +141,23 @@ public class OtpService {
 
         // Check if OTP is expired
         if (otpToken.isExpired()) {
-            logger.warn("OTP validation failed - OTP expired for email: {}. Expired at: {}",
-                    email, otpToken.getExpiresAt());
+            logger.warn("OTP validation failed - OTP expired for email: {}, type: {}. Expired at: {}",
+                    email, otpType, otpToken.getExpiresAt());
             return false;
         }
 
         // Verify OTP hash matches
         if (!passwordEncoder.matches(otpCode, otpToken.getOtpCode())) {
-            logger.warn("OTP validation failed - OTP mismatch for email: {}", email);
+            logger.warn("OTP validation failed - OTP mismatch for email: {}, type: {}",
+                    email, otpType);
             return false;
         }
 
         // Mark as used to prevent reuse
         otpToken.setUsed(true);
         otpTokenRepository.save(otpToken);
-        logger.info("OTP validated and marked as used successfully for email: {}", email);
+        logger.info("OTP validated and marked as used successfully for email: {}, type: {}",
+                email, otpType);
 
         return true;
     }

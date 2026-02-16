@@ -4,6 +4,7 @@ import com.jitech.mindsync.dto.ProfileResponse;
 import com.jitech.mindsync.dto.ProfileUpdateRequest;
 import com.jitech.mindsync.model.Genders;
 import com.jitech.mindsync.model.Occupations;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.model.WorkRemotes;
 import com.jitech.mindsync.repository.GendersRepository;
@@ -150,8 +151,8 @@ public class ProfileService {
         }
 
         logger.debug("User found, initiating OTP send for email: {}", email);
-        // Send OTP
-        otpService.sendOtp(email);
+        // Send OTP for password reset
+        otpService.sendOtp(email, OtpType.PASSWORD_RESET);
         logger.info("Password reset OTP sent successfully for email: {}", email);
     }
 
@@ -167,7 +168,7 @@ public class ProfileService {
 
         // Validate and use OTP
         logger.debug("Validating OTP for email: {}", email);
-        if (!otpService.validateAndUseOtp(email, otp)) {
+        if (!otpService.validateAndUseOtp(email, otp, OtpType.PASSWORD_RESET)) {
             logger.warn("Password reset failed - Invalid or expired OTP for email: {}", email);
             return false;
         }

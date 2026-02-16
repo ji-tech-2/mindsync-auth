@@ -1,6 +1,8 @@
 package com.jitech.mindsync.controller;
 
 import com.jitech.mindsync.dto.*;
+import com.jitech.mindsync.model.OtpType;
+import com.jitech.mindsync.service.OtpService;
 import com.jitech.mindsync.service.ProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +21,12 @@ public class ProfileController {
     private static final Logger logger = LoggerFactory.getLogger(ProfileController.class);
 
     private final ProfileService profileService;
+    private final OtpService otpService;
 
     @Autowired
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, OtpService otpService) {
         this.profileService = profileService;
+        this.otpService = otpService;
     }
 
     /**
@@ -96,6 +100,37 @@ public class ProfileController {
         } catch (RuntimeException e) {
             // Catches email sending failures (RuntimeException thrown by EmailService)
             logger.error("POST /profile/request-otp - Internal error for email: {}. Error: {}",
+                    request.getEmail(), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "message", "Failed to send OTP. Please try again later."));
+        }
+    }
+
+    /**
+     * Request OTP for signup email verification
+     * Public endpoint - no token required
+     */
+    @PostMapping("/request-signup-otp")
+    public ResponseEntity<?> requestSignupOtp(@RequestBody OtpRequest request) {
+        logger.info("POST /profile/request-signup-otp - Signup OTP request for email: {}",
+                request.getEmail());
+        try {
+            otpService.sendOtp(request.getEmail(), OtpType.SIGNUP);
+
+            logger.info("POST /profile/request-signup-otp - Signup OTP sent successfully for email: {}",
+                    request.getEmail());
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Verification OTP has been sent to your email"));
+        } catch (IllegalArgumentException e) {
+            logger.warn("POST /profile/request-signup-otp - Request failed for email: {}. Reason: {}",
+                    request.getEmail(), e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            logger.error("POST /profile/request-signup-otp - Internal error for email: {}. Error: {}",
                     request.getEmail(), e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "success", false,
