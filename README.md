@@ -55,7 +55,8 @@ mindsync-auth/
 │   │   │   │   ├── OtpVerifyRequest.java        OTP verification request DTO
 │   │   │   │   ├── ProfileResponse.java         Profile response DTO
 │   │   │   │   ├── ProfileUpdateRequest.java    Profile update request DTO
-│   │   │   │   └── RegisterRequest.java         Registration request DTO
+│   │   │   │   ├── RegisterRequest.java         Registration request DTO
+│   │   │   │   └── ResetPasswordRequest.java    Reset password request DTO
 │   │   │   ├── model/
 │   │   │   │   ├── FactorAdvices.java           Factor advice entity
 │   │   │   │   ├── Factors.java                 Factors entity
@@ -257,16 +258,38 @@ mindsync-auth/
   ```
 - **Status Codes:** 200 (Success), 400 (Bad Request)
 
-#### Change Password
+#### Reset Password
 
-- **Endpoint:** `POST /profile/change-password`
-- **Description:** Change user password after OTP verification
+- **Endpoint:** `POST /profile/reset-password`
+- **Description:** Reset user password using OTP (for forgotten passwords)
 - **Authentication:** Not required
 - **Request Body:**
   ```json
   {
     "email": "user@example.com",
     "otp": "123456",
+    "newPassword": "newpassword123"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Password reset successfully"
+  }
+  ```
+- **Status Codes:** 200 (Success), 400 (Bad Request)
+
+#### Change Password
+
+- **Endpoint:** `POST /profile/change-password`
+- **Description:** Change password for authenticated user
+- **Authentication:** Required (JWT cookie)
+- **Credentials:** Include `credentials: 'include'` when making fetch requests
+- **Request Body:**
+  ```json
+  {
+    "oldPassword": "currentpassword123",
     "newPassword": "newpassword123"
   }
   ```

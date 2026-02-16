@@ -150,8 +150,42 @@ public class ProfileService {
     }
 
     @Transactional
-    public boolean changePassword(String email, String otp, String newPassword) {
-        logger.info("Password change attempt for email: {}", email);
+    public boolean resetPassword(String email, String otp, String newPassword) {
+        logger.info("Password reset attempt for email: {}", email);
+
+        // Validate password strength
+        if (newPassword == null || newPassword.length() < 8) {
+            logger.warn("Password reset failed - Password too short for email: {}", email);
+            throw new IllegalArgumentException("Password must be at least 8 characters");
+        }
+
+        // Validate and use OTP
+        logger.debug("Validating OTP for email: {}", email);
+        if (!otpService.validateAndUseOtp(email, otp)) {
+            logger.warn("Password reset failed - Invalid or expired OTP for email: {}", email);
+            return false;
+        }
+
+        // Find user and update password
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    logger.error("Password reset failed - User not found for email: {}", email);
+                    return new IllegalArgumentException("User not found");
+                });
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        logger.info("Password reset successfully for userId: {}, email: {}", user.getUserId(), email);
+
+        // Send confirmation email
+        emailService.sendPasswordChangedEmail(email);
+
+        return true;
+    }
+
+    @Transactional
+    public boolean changePassword(String email, String oldPassword, String newPassword) {
+        logger.info("Password change attempt for authenticated user with email: {}", email);
 
         // Validate password strength
         if (newPassword == null || newPassword.length() < 8) {
@@ -159,20 +193,20 @@ public class ProfileService {
             throw new IllegalArgumentException("Password must be at least 8 characters");
         }
 
-        // Validate and use OTP
-        logger.debug("Validating OTP for email: {}", email);
-        if (!otpService.validateAndUseOtp(email, otp)) {
-            logger.warn("Password change failed - Invalid or expired OTP for email: {}", email);
-            return false;
-        }
-
-        // Find user and update password
+        // Find user
         Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.error("Password change failed - User not found for email: {}", email);
                     return new IllegalArgumentException("User not found");
                 });
 
+        // Verify old password
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            logger.warn("Password change failed - Incorrect old password for email: {}", email);
+            return false;
+        }
+
+        // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         logger.info("Password changed successfully for userId: {}, email: {}", user.getUserId(), email);

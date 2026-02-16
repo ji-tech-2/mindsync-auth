@@ -56,7 +56,7 @@ public class SecurityConfig {
                                                                                                                // auth
                                                                                                                // endpoints
                                                 .requestMatchers("/profile/request-otp", "/profile/verify-otp",
-                                                                "/profile/change-password")
+                                                                "/profile/reset-password")
                                                 .permitAll() // Public OTP endpoints
                                                 .requestMatchers("/test-email").permitAll() // test email endpoint
                                                 .requestMatchers("/test-otp").permitAll() // test otp endpoint
