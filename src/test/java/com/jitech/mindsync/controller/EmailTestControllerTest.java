@@ -1,5 +1,6 @@
 package com.jitech.mindsync.controller;
 
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.security.JwtProvider;
 import com.jitech.mindsync.service.EmailService;
 import com.jitech.mindsync.service.OtpService;
@@ -12,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -21,65 +23,65 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class EmailTestControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private EmailService emailService;
+        @MockBean
+        private EmailService emailService;
 
-    @MockBean
-    private OtpService otpService;
+        @MockBean
+        private OtpService otpService;
 
-    @MockBean
-    private JwtProvider jwtProvider;
+        @MockBean
+        private JwtProvider jwtProvider;
 
-    @Test
-    void testSendTestEmailSuccess() throws Exception {
-        doNothing().when(emailService).sendOtpEmail(anyString(), anyString());
+        @Test
+        void testSendTestEmailSuccess() throws Exception {
+                doNothing().when(emailService).sendOtpEmail(anyString(), anyString());
 
-        mockMvc.perform(get("/test-email")
-                .param("to", "test@example.com"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Test email sent successfully to test@example.com"));
+                mockMvc.perform(get("/test-email")
+                                .param("to", "test@example.com"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("Test email sent successfully to test@example.com"));
 
-        verify(emailService).sendOtpEmail("test@example.com", "123456");
-    }
+                verify(emailService).sendOtpEmail("test@example.com", "123456");
+        }
 
-    @Test
-    void testSendTestEmailFailure() throws Exception {
-        doThrow(new RuntimeException("Email service error"))
-                .when(emailService).sendOtpEmail(anyString(), anyString());
+        @Test
+        void testSendTestEmailFailure() throws Exception {
+                doThrow(new RuntimeException("Email service error"))
+                                .when(emailService).sendOtpEmail(anyString(), anyString());
 
-        mockMvc.perform(get("/test-email")
-                .param("to", "test@example.com"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Failed to send email: Email service error"));
+                mockMvc.perform(get("/test-email")
+                                .param("to", "test@example.com"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("Failed to send email: Email service error"));
 
-        verify(emailService).sendOtpEmail("test@example.com", "123456");
-    }
+                verify(emailService).sendOtpEmail("test@example.com", "123456");
+        }
 
-    @Test
-    void testSendTestOtpSuccess() throws Exception {
-        doNothing().when(otpService).sendOtp(anyString());
+        @Test
+        void testSendTestOtpSuccess() throws Exception {
+                doNothing().when(otpService).sendOtp(anyString(), any(OtpType.class));
 
-        mockMvc.perform(get("/test-otp")
-                .param("email", "test@example.com"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("OTP sent successfully to test@example.com"));
+                mockMvc.perform(get("/test-otp")
+                                .param("email", "test@example.com"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("OTP sent successfully to test@example.com"));
 
-        verify(otpService).sendOtp("test@example.com");
-    }
+                verify(otpService).sendOtp("test@example.com", OtpType.PASSWORD_RESET);
+        }
 
-    @Test
-    void testSendTestOtpFailure() throws Exception {
-        doThrow(new RuntimeException("OTP service error"))
-                .when(otpService).sendOtp(anyString());
+        @Test
+        void testSendTestOtpFailure() throws Exception {
+                doThrow(new RuntimeException("OTP service error"))
+                                .when(otpService).sendOtp(anyString(), any(OtpType.class));
 
-        mockMvc.perform(get("/test-otp")
-                .param("email", "test@example.com"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Failed to send OTP: OTP service error"));
+                mockMvc.perform(get("/test-otp")
+                                .param("email", "test@example.com"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("Failed to send OTP: OTP service error"));
 
-        verify(otpService).sendOtp("test@example.com");
-    }
+                verify(otpService).sendOtp("test@example.com", OtpType.PASSWORD_RESET);
+        }
 }

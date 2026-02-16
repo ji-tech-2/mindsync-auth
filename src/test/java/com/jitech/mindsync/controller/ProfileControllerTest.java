@@ -2,8 +2,10 @@ package com.jitech.mindsync.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jitech.mindsync.dto.*;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.security.JwtAuthenticationFilter;
 import com.jitech.mindsync.security.JwtProvider;
+import com.jitech.mindsync.service.OtpService;
 import com.jitech.mindsync.service.ProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,9 @@ class ProfileControllerTest {
 
         @MockBean
         private ProfileService profileService;
+
+        @MockBean
+        private OtpService otpService;
 
         @MockBean
         private JwtProvider jwtProvider;
@@ -185,6 +190,62 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.message").value("Failed to send OTP. Please try again later."));
 
                 verify(profileService).requestPasswordReset("test@example.com");
+        }
+
+        @Test
+        void requestSignupOtp_Success() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("newuser@example.com");
+
+                doNothing().when(otpService).sendOtp("newuser@example.com", OtpType.SIGNUP);
+
+                mockMvc.perform(post("/profile/request-signup-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.message").value("Verification OTP has been sent to your email"));
+
+                verify(otpService).sendOtp("newuser@example.com", OtpType.SIGNUP);
+        }
+
+        @Test
+        void requestSignupOtp_InvalidEmail() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("invalid@example.com");
+
+                doThrow(new IllegalArgumentException("Invalid email"))
+                                .when(otpService).sendOtp("invalid@example.com", OtpType.SIGNUP);
+
+                mockMvc.perform(post("/profile/request-signup-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Invalid email"));
+
+                verify(otpService).sendOtp("invalid@example.com", OtpType.SIGNUP);
+        }
+
+        @Test
+        void requestSignupOtp_EmailSendingFailure() throws Exception {
+                OtpRequest otpRequest = new OtpRequest();
+                otpRequest.setEmail("newuser@example.com");
+
+                doThrow(new RuntimeException("Email service unavailable"))
+                                .when(otpService).sendOtp("newuser@example.com", OtpType.SIGNUP);
+
+                mockMvc.perform(post("/profile/request-signup-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(otpRequest)))
+                                .andExpect(status().isInternalServerError())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.message").value("Failed to send OTP. Please try again later."));
+
+                verify(otpService).sendOtp("newuser@example.com", OtpType.SIGNUP);
         }
 
         @Test
