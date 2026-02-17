@@ -48,16 +48,15 @@ public class JwtProvider {
                 throw new IllegalStateException("No private key configured. Set mindsync.jwt.private-key.");
             }
 
-            logger.debug("Loading private key from base64 string");
+            logger.debug("Loading private key");
 
-            // Remove PEM headers and whitespace if present
-            String privateKeyPEM = privateKeyBase64
+            // Strip PEM headers/footers and whitespace, then decode the Base64 body
+            String keyBody = privateKeyBase64
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
                     .replaceAll("\\s", "");
 
-            // Decode Base64
-            byte[] keyBytes = Base64.getDecoder().decode(privateKeyPEM);
+            byte[] keyBytes = Base64.getDecoder().decode(keyBody);
 
             // Generate private key
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
@@ -79,16 +78,15 @@ public class JwtProvider {
                 throw new IllegalStateException("No public key configured. Set mindsync.jwt.public-key.");
             }
 
-            logger.debug("Loading public key from base64 string");
+            logger.debug("Loading public key");
 
-            // Remove PEM headers and whitespace if present
-            String publicKeyPEM = publicKeyBase64
+            // Strip PEM headers/footers and whitespace, then decode the Base64 body
+            String keyBody = publicKeyBase64
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
                     .replaceAll("\\s", "");
 
-            // Decode Base64
-            byte[] keyBytes = Base64.getDecoder().decode(publicKeyPEM);
+            byte[] keyBytes = Base64.getDecoder().decode(keyBody);
 
             // Generate public key
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
