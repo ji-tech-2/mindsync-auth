@@ -65,8 +65,8 @@ public class AuthController {
         Users user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (user != null) {
-            String token = jwtProvider.generateToken(user.getEmail());
-            logger.debug("JWT token generated for email: {}", user.getEmail());
+            String token = jwtProvider.generateToken(user.getUserId().toString());
+            logger.debug("JWT token generated for userId: {}", user.getUserId());
 
             // Set JWT as httponly cookie
             Cookie jwtCookie = new Cookie("jwt", token);
@@ -76,7 +76,7 @@ public class AuthController {
             jwtCookie.setMaxAge(24 * 60 * 60); // 24 hours
             jwtCookie.setAttribute("SameSite", "Strict"); // CSRF protection
             httpResponse.addCookie(jwtCookie);
-            logger.debug("JWT cookie set for email: {}", user.getEmail());
+            logger.debug("JWT cookie set for userId: {}", user.getUserId());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

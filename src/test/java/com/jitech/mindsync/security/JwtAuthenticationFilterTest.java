@@ -54,14 +54,14 @@ class JwtAuthenticationFilterTest {
         void doFilterInternal_WithValidCookieToken_ShouldAuthenticate() throws ServletException, IOException {
             // Given
             String token = "valid.jwt.token";
-            String email = "test@example.com";
+            String userId = "550e8400-e29b-41d4-a716-446655440000";
             Cookie jwtCookie = new Cookie("jwt", token);
 
             when(request.getCookies()).thenReturn(new Cookie[] { jwtCookie });
             when(request.getRequestURI()).thenReturn("/profile");
             when(request.getMethod()).thenReturn("GET");
             when(jwtProvider.validateToken(token)).thenReturn(true);
-            when(jwtProvider.getEmailFromToken(token)).thenReturn(email);
+            when(jwtProvider.getUserIdFromToken(token)).thenReturn(userId);
 
             // When
             jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -69,7 +69,7 @@ class JwtAuthenticationFilterTest {
             // Then
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             assertNotNull(auth);
-            assertEquals(email, auth.getName());
+            assertEquals(userId, auth.getName());
             verify(filterChain, times(1)).doFilter(request, response);
         }
 
@@ -92,7 +92,7 @@ class JwtAuthenticationFilterTest {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             assertNull(auth);
             verify(filterChain, times(1)).doFilter(request, response);
-            verify(jwtProvider, never()).getEmailFromToken(anyString());
+            verify(jwtProvider, never()).getUserIdFromToken(anyString());
         }
 
         @Test
@@ -100,7 +100,7 @@ class JwtAuthenticationFilterTest {
         void doFilterInternal_WithMultipleCookies_ShouldFindJwt() throws ServletException, IOException {
             // Given
             String token = "valid.jwt.token";
-            String email = "test@example.com";
+            String userId = "550e8400-e29b-41d4-a716-446655440000";
             Cookie[] cookies = {
                     new Cookie("session", "session-value"),
                     new Cookie("jwt", token),
@@ -111,7 +111,7 @@ class JwtAuthenticationFilterTest {
             when(request.getRequestURI()).thenReturn("/profile");
             when(request.getMethod()).thenReturn("GET");
             when(jwtProvider.validateToken(token)).thenReturn(true);
-            when(jwtProvider.getEmailFromToken(token)).thenReturn(email);
+            when(jwtProvider.getUserIdFromToken(token)).thenReturn(userId);
 
             // When
             jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -119,7 +119,7 @@ class JwtAuthenticationFilterTest {
             // Then
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             assertNotNull(auth);
-            assertEquals(email, auth.getName());
+            assertEquals(userId, auth.getName());
         }
     }
 
@@ -132,14 +132,14 @@ class JwtAuthenticationFilterTest {
         void doFilterInternal_WithValidHeaderToken_ShouldAuthenticate() throws ServletException, IOException {
             // Given
             String token = "valid.jwt.token";
-            String email = "test@example.com";
+            String userId = "550e8400-e29b-41d4-a716-446655440000";
 
             when(request.getCookies()).thenReturn(null);
             when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
             when(request.getRequestURI()).thenReturn("/profile");
             when(request.getMethod()).thenReturn("GET");
             when(jwtProvider.validateToken(token)).thenReturn(true);
-            when(jwtProvider.getEmailFromToken(token)).thenReturn(email);
+            when(jwtProvider.getUserIdFromToken(token)).thenReturn(userId);
 
             // When
             jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -147,7 +147,7 @@ class JwtAuthenticationFilterTest {
             // Then
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             assertNotNull(auth);
-            assertEquals(email, auth.getName());
+            assertEquals(userId, auth.getName());
             verify(filterChain, times(1)).doFilter(request, response);
         }
 
@@ -174,14 +174,14 @@ class JwtAuthenticationFilterTest {
         void doFilterInternal_WithBothCookieAndHeader_ShouldPreferCookie() throws ServletException, IOException {
             // Given
             String cookieToken = "cookie.jwt.token";
-            String email = "test@example.com";
+            String userId = "550e8400-e29b-41d4-a716-446655440000";
             Cookie jwtCookie = new Cookie("jwt", cookieToken);
 
             when(request.getCookies()).thenReturn(new Cookie[] { jwtCookie });
             when(request.getRequestURI()).thenReturn("/profile");
             when(request.getMethod()).thenReturn("GET");
             when(jwtProvider.validateToken(cookieToken)).thenReturn(true);
-            when(jwtProvider.getEmailFromToken(cookieToken)).thenReturn(email);
+            when(jwtProvider.getUserIdFromToken(cookieToken)).thenReturn(userId);
 
             // When
             jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
