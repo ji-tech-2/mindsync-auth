@@ -57,7 +57,8 @@ jobs:
               -e EMAIL_USERNAME="${{ secrets.EMAIL_USERNAME }}" \
               -e EMAIL_PASSWORD="${{ secrets.EMAIL_PASSWORD }}" \
               -e RESEND_API="${{ secrets.RESEND_API }}" \
-              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e JWT_PRIVATE_KEY="${{ secrets.JWT_PRIVATE_KEY }}" \
+              -e JWT_PUBLIC_KEY="${{ secrets.JWT_PUBLIC_KEY }}" \
               $IMAGE_NAME:$IMAGE_TAG
 
             docker image prune -f
