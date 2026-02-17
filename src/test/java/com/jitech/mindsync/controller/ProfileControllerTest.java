@@ -29,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class ProfileControllerTest {
 
+        private static final String TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000";
+
         @Autowired
         private MockMvc mockMvc;
 
@@ -62,9 +64,9 @@ class ProfileControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void getProfile_Success() throws Exception {
-                when(profileService.getProfile("test@example.com")).thenReturn(sampleProfile);
+                when(profileService.getProfile(TEST_USER_ID)).thenReturn(sampleProfile);
 
                 mockMvc.perform(get("/profile")
                                 .with(csrf()))
@@ -75,13 +77,13 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.data.gender").value("MALE"))
                                 .andExpect(jsonPath("$.data.occupation").value("SOFTWARE_ENGINEER"));
 
-                verify(profileService).getProfile("test@example.com");
+                verify(profileService).getProfile(TEST_USER_ID);
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void getProfile_UserNotFound() throws Exception {
-                when(profileService.getProfile("test@example.com"))
+                when(profileService.getProfile(TEST_USER_ID))
                                 .thenThrow(new IllegalArgumentException("User not found"));
 
                 mockMvc.perform(get("/profile")
@@ -90,11 +92,11 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.success").value(false))
                                 .andExpect(jsonPath("$.message").value("User not found"));
 
-                verify(profileService).getProfile("test@example.com");
+                verify(profileService).getProfile(TEST_USER_ID);
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void updateProfile_Success() throws Exception {
                 ProfileResponse updatedProfile = new ProfileResponse();
                 updatedProfile.setEmail("test@example.com");
@@ -102,7 +104,7 @@ class ProfileControllerTest {
                 updatedProfile.setGender("FEMALE");
                 updatedProfile.setOccupation("DATA_SCIENTIST");
 
-                when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
+                when(profileService.updateProfile(eq(TEST_USER_ID), any(ProfileUpdateRequest.class)))
                                 .thenReturn(updatedProfile);
 
                 mockMvc.perform(put("/profile")
@@ -116,13 +118,13 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.data.gender").value("FEMALE"))
                                 .andExpect(jsonPath("$.data.occupation").value("DATA_SCIENTIST"));
 
-                verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
+                verify(profileService).updateProfile(eq(TEST_USER_ID), any(ProfileUpdateRequest.class));
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void updateProfile_InvalidData() throws Exception {
-                when(profileService.updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class)))
+                when(profileService.updateProfile(eq(TEST_USER_ID), any(ProfileUpdateRequest.class)))
                                 .thenThrow(new IllegalArgumentException("Invalid gender value"));
 
                 mockMvc.perform(put("/profile")
@@ -133,7 +135,7 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.success").value(false))
                                 .andExpect(jsonPath("$.message").value("Invalid gender value"));
 
-                verify(profileService).updateProfile(eq("test@example.com"), any(ProfileUpdateRequest.class));
+                verify(profileService).updateProfile(eq(TEST_USER_ID), any(ProfileUpdateRequest.class));
         }
 
         @Test
@@ -313,13 +315,13 @@ class ProfileControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void changePassword_Success() throws Exception {
                 ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
                 changePasswordRequest.setOldPassword("oldPassword123!");
                 changePasswordRequest.setNewPassword("newPassword123!");
 
-                when(profileService.changePassword("test@example.com", "oldPassword123!", "newPassword123!"))
+                when(profileService.changePassword(TEST_USER_ID, "oldPassword123!", "newPassword123!"))
                                 .thenReturn(true);
 
                 mockMvc.perform(post("/profile/change-password")
@@ -330,17 +332,17 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.message").value("Password changed successfully"));
 
-                verify(profileService).changePassword("test@example.com", "oldPassword123!", "newPassword123!");
+                verify(profileService).changePassword(TEST_USER_ID, "oldPassword123!", "newPassword123!");
         }
 
         @Test
-        @WithMockUser(username = "test@example.com")
+        @WithMockUser(username = "550e8400-e29b-41d4-a716-446655440000")
         void changePassword_IncorrectOldPassword() throws Exception {
                 ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest();
                 changePasswordRequest.setOldPassword("wrongPassword");
                 changePasswordRequest.setNewPassword("newPassword123!");
 
-                when(profileService.changePassword("test@example.com", "wrongPassword", "newPassword123!"))
+                when(profileService.changePassword(TEST_USER_ID, "wrongPassword", "newPassword123!"))
                                 .thenReturn(false);
 
                 mockMvc.perform(post("/profile/change-password")
@@ -351,6 +353,6 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.success").value(false))
                                 .andExpect(jsonPath("$.message").value("Incorrect old password"));
 
-                verify(profileService).changePassword("test@example.com", "wrongPassword", "newPassword123!");
+                verify(profileService).changePassword(TEST_USER_ID, "wrongPassword", "newPassword123!");
         }
 }

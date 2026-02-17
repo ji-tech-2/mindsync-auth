@@ -93,13 +93,14 @@ class ProfileServiceTest {
     class GetProfileTests {
 
         @Test
-        @DisplayName("Should return profile for valid email")
-        void getProfile_WithValidEmail_ShouldReturnProfile() {
+        @DisplayName("Should return profile for valid userId")
+        void getProfile_WithValidUserId_ShouldReturnProfile() {
             // Given
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            String userId = testUser.getUserId().toString();
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
 
             // When
-            ProfileResponse result = profileService.getProfile("test@example.com");
+            ProfileResponse result = profileService.getProfile(userId);
 
             // Then
             assertNotNull(result);
@@ -111,22 +112,23 @@ class ProfileServiceTest {
             assertEquals("Student", result.getOccupation());
             assertEquals("Remote", result.getWorkRmt());
 
-            verify(userRepository, times(1)).findByEmail("test@example.com");
+            verify(userRepository, times(1)).findById(testUser.getUserId());
         }
 
         @Test
         @DisplayName("Should throw exception when user not found")
-        void getProfile_WithInvalidEmail_ShouldThrowException() {
+        void getProfile_WithInvalidUserId_ShouldThrowException() {
             // Given
-            when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+            UUID nonExistentId = UUID.randomUUID();
+            when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.getProfile("nonexistent@example.com"));
+                    () -> profileService.getProfile(nonExistentId.toString()));
 
             assertEquals("User not found", exception.getMessage());
-            verify(userRepository, times(1)).findByEmail("nonexistent@example.com");
+            verify(userRepository, times(1)).findById(nonExistentId);
         }
 
         @Test
@@ -136,10 +138,10 @@ class ProfileServiceTest {
             testUser.setGender(null);
             testUser.setOccupation(null);
             testUser.setWorkRmt(null);
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
 
             // When
-            ProfileResponse result = profileService.getProfile("test@example.com");
+            ProfileResponse result = profileService.getProfile(testUser.getUserId().toString());
 
             // Then
             assertNotNull(result);
@@ -157,6 +159,7 @@ class ProfileServiceTest {
         @DisplayName("Should update all fields successfully")
         void updateProfile_WithAllFields_ShouldUpdateSuccessfully() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setName("Updated Name");
             request.setGender("Female");
@@ -175,14 +178,14 @@ class ProfileServiceTest {
             newWorkRemote.setWorkRmtId(2);
             newWorkRemote.setWorkRmtName("Hybrid");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(gendersRepository.findByGenderName("Female")).thenReturn(Optional.of(newGender));
             when(occupationsRepository.findByOccupationName("Engineer")).thenReturn(Optional.of(newOccupation));
             when(workRemotesRepository.findByWorkRmtName("Hybrid")).thenReturn(Optional.of(newWorkRemote));
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
 
             // When
-            ProfileResponse result = profileService.updateProfile("test@example.com", request);
+            ProfileResponse result = profileService.updateProfile(userId, request);
 
             // Then
             assertNotNull(result);
@@ -194,14 +197,15 @@ class ProfileServiceTest {
         @DisplayName("Should update only name")
         void updateProfile_WithOnlyName_ShouldUpdateName() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setName("New Name");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
 
             // When
-            ProfileResponse result = profileService.updateProfile("test@example.com", request);
+            ProfileResponse result = profileService.updateProfile(userId, request);
 
             // Then
             assertNotNull(result);
@@ -211,16 +215,17 @@ class ProfileServiceTest {
 
         @Test
         @DisplayName("Should throw exception when user not found")
-        void updateProfile_WithInvalidEmail_ShouldThrowException() {
+        void updateProfile_WithInvalidUserId_ShouldThrowException() {
             // Given
+            UUID nonExistentId = UUID.randomUUID();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setName("New Name");
-            when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+            when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.updateProfile("nonexistent@example.com", request));
+                    () -> profileService.updateProfile(nonExistentId.toString(), request));
 
             assertEquals("User not found", exception.getMessage());
         }
@@ -229,16 +234,17 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception for invalid gender")
         void updateProfile_WithInvalidGender_ShouldThrowException() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setGender("InvalidGender");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(gendersRepository.findByGenderName("InvalidGender")).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.updateProfile("test@example.com", request));
+                    () -> profileService.updateProfile(userId, request));
 
             assertTrue(exception.getMessage().contains("Invalid gender"));
         }
@@ -247,16 +253,17 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception for invalid occupation")
         void updateProfile_WithInvalidOccupation_ShouldThrowException() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setOccupation("InvalidOccupation");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(occupationsRepository.findByOccupationName("InvalidOccupation")).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.updateProfile("test@example.com", request));
+                    () -> profileService.updateProfile(userId, request));
 
             assertTrue(exception.getMessage().contains("Invalid occupation"));
         }
@@ -265,16 +272,17 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception for invalid work remote status")
         void updateProfile_WithInvalidWorkRemote_ShouldThrowException() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setWorkRmt("InvalidWorkRemote");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(workRemotesRepository.findByWorkRmtName("InvalidWorkRemote")).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.updateProfile("test@example.com", request));
+                    () -> profileService.updateProfile(userId, request));
 
             assertTrue(exception.getMessage().contains("Invalid work remote status"));
         }
@@ -283,14 +291,15 @@ class ProfileServiceTest {
         @DisplayName("Should trim whitespace from fields")
         void updateProfile_WithWhitespace_ShouldTrimFields() {
             // Given
+            String userId = testUser.getUserId().toString();
             ProfileUpdateRequest request = new ProfileUpdateRequest();
             request.setName("  New Name  ");
 
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
 
             // When
-            profileService.updateProfile("test@example.com", request);
+            profileService.updateProfile(userId, request);
 
             // Then
             assertEquals("New Name", testUser.getName());
@@ -413,13 +422,14 @@ class ProfileServiceTest {
         @DisplayName("Should change password with valid old password")
         void changePassword_WithValidOldPassword_ShouldChangePassword() {
             // Given
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            String userId = testUser.getUserId().toString();
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches("oldPassword123", "hashedPassword")).thenReturn(true);
             when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
             when(userRepository.save(any(Users.class))).thenReturn(testUser);
 
             // When
-            boolean result = profileService.changePassword("test@example.com", "oldPassword123", "newPassword123");
+            boolean result = profileService.changePassword(userId, "oldPassword123", "newPassword123");
 
             // Then
             assertTrue(result);
@@ -432,11 +442,12 @@ class ProfileServiceTest {
         @DisplayName("Should return false with incorrect old password")
         void changePassword_WithIncorrectOldPassword_ShouldReturnFalse() {
             // Given
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            String userId = testUser.getUserId().toString();
+            when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
             // When
-            boolean result = profileService.changePassword("test@example.com", "wrongPassword", "newPassword123");
+            boolean result = profileService.changePassword(userId, "wrongPassword", "newPassword123");
 
             // Then
             assertFalse(result);
@@ -447,10 +458,13 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should throw exception for short password")
         void changePassword_WithShortPassword_ShouldThrowException() {
+            // Given
+            String userId = testUser.getUserId().toString();
+
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("test@example.com", "oldPassword123", "short"));
+                    () -> profileService.changePassword(userId, "oldPassword123", "short"));
 
             assertEquals("Password must be at least 8 characters", exception.getMessage());
         }
@@ -458,10 +472,13 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should throw exception for null password")
         void changePassword_WithNullPassword_ShouldThrowException() {
+            // Given
+            String userId = testUser.getUserId().toString();
+
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("test@example.com", "oldPassword123", null));
+                    () -> profileService.changePassword(userId, "oldPassword123", null));
 
             assertEquals("Password must be at least 8 characters", exception.getMessage());
         }
@@ -470,12 +487,13 @@ class ProfileServiceTest {
         @DisplayName("Should throw exception when user not found")
         void changePassword_WithNonExistentUser_ShouldThrowException() {
             // Given
-            when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+            UUID nonExistentId = UUID.randomUUID();
+            when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
             // When/Then
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> profileService.changePassword("nonexistent@example.com", "oldPassword123", "newPassword123"));
+                    () -> profileService.changePassword(nonExistentId.toString(), "oldPassword123", "newPassword123"));
 
             assertEquals("User not found", exception.getMessage());
         }

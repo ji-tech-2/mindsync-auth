@@ -76,7 +76,7 @@ mindsync-auth/
 │   │   │   │   └── UserRepository.java          Users data repository
 │   │   │   ├── security/
 │   │   │   │   ├── JwtAuthenticationFilter.java JWT authentication filter
-│   │   │   │   └── JwtProvider.java             JWT token provider
+│   │   │   │   └── JwtProvider.java             JWT token provider (subject: userId)
 │   │   │   └── service/
 │   │   │       ├── AuthService.java             Authentication service
 │   │   │       ├── EmailService.java            Email sending service
@@ -505,6 +505,7 @@ docker-compose up
 This application implements the following security measures:
 
 - **HttpOnly Cookies:** JWT tokens stored as HttpOnly, Secure, SameSite=Strict cookies to prevent XSS attacks
+- **JWT Subject:** Uses `userId` (UUID) as the token subject for user identification instead of email
 - **CSRF Protection:** SameSite attribute on cookies prevents Cross-Site Request Forgery
 - **Input Validation:** @Valid annotations on DTOs with @NotBlank, @Email, @Size constraints
 - **Security Headers:**

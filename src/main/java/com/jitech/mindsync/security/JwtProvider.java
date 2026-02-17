@@ -106,17 +106,17 @@ public class JwtProvider {
 
     // 1. FUNGSI MEMBUAT TOKEN (Digunakan saat user berhasil login)
     // Uses PRIVATE KEY for signing
-    public String generateToken(String email) {
-        logger.debug("Generating JWT token for email: {}", email);
+    public String generateToken(String userId) {
+        logger.debug("Generating JWT token for userId: {}", userId);
 
         String token = Jwts.builder()
-                .setSubject(email) // Menyimpan email di dalam token
+                .setSubject(userId) // Menyimpan userId di dalam token
                 .setIssuedAt(new Date()) // Waktu token dibuat
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration)) // Waktu expired
                 .signWith(privateKey, SignatureAlgorithm.RS256) // Tanda tangan digital dengan RSA-256
                 .compact();
 
-        logger.info("JWT token generated successfully for email: {}", email);
+        logger.info("JWT token generated successfully for userId: {}", userId);
         return token;
     }
 
@@ -141,17 +141,17 @@ public class JwtProvider {
         return false;
     }
 
-    // 3. FUNGSI MENGAMBIL EMAIL (Membaca siapa pemilik token ini)
+    // 3. FUNGSI MENGAMBIL USER ID (Membaca siapa pemilik token ini)
     // Uses PUBLIC KEY for verification
-    public String getEmailFromToken(String token) {
-        logger.debug("Extracting email from JWT token");
-        String email = Jwts.parserBuilder()
+    public String getUserIdFromToken(String token) {
+        logger.debug("Extracting userId from JWT token");
+        String userId = Jwts.parserBuilder()
                 .setSigningKey(publicKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
-        logger.debug("Email extracted successfully from JWT token: {}", email);
-        return email;
+        logger.debug("UserId extracted successfully from JWT token: {}", userId);
+        return userId;
     }
 }

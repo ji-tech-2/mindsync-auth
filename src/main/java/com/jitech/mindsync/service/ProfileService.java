@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ProfileService {
@@ -51,11 +52,11 @@ public class ProfileService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ProfileResponse getProfile(String email) {
-        logger.info("Fetching profile for email: {}", email);
-        Users user = userRepository.findByEmail(email)
+    public ProfileResponse getProfile(String userId) {
+        logger.info("Fetching profile for userId: {}", userId);
+        Users user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> {
-                    logger.error("Profile not found for email: {}", email);
+                    logger.error("Profile not found for userId: {}", userId);
                     return new IllegalArgumentException("User not found");
                 });
 
@@ -71,11 +72,11 @@ public class ProfileService {
     }
 
     @Transactional
-    public ProfileResponse updateProfile(String email, ProfileUpdateRequest request) {
-        logger.info("Starting profile update for email: {}", email);
-        Users user = userRepository.findByEmail(email)
+    public ProfileResponse updateProfile(String userId, ProfileUpdateRequest request) {
+        logger.info("Starting profile update for userId: {}", userId);
+        Users user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> {
-                    logger.error("Profile update failed - User not found for email: {}", email);
+                    logger.error("Profile update failed - User not found for userId: {}", userId);
                     return new IllegalArgumentException("User not found");
                 });
 
@@ -127,7 +128,7 @@ public class ProfileService {
         }
 
         Users savedUser = userRepository.save(user);
-        logger.info("Profile updated successfully for userId: {}, email: {}", savedUser.getUserId(), email);
+        logger.info("Profile updated successfully for userId: {}", savedUser.getUserId());
 
         return new ProfileResponse(
                 savedUser.getUserId(),
@@ -191,35 +192,35 @@ public class ProfileService {
     }
 
     @Transactional
-    public boolean changePassword(String email, String oldPassword, String newPassword) {
-        logger.info("Password change attempt for authenticated user with email: {}", email);
+    public boolean changePassword(String userId, String oldPassword, String newPassword) {
+        logger.info("Password change attempt for authenticated user with userId: {}", userId);
 
         // Validate password strength
         if (newPassword == null || newPassword.length() < 8) {
-            logger.warn("Password change failed - Password too short for email: {}", email);
+            logger.warn("Password change failed - Password too short for userId: {}", userId);
             throw new IllegalArgumentException("Password must be at least 8 characters");
         }
 
         // Find user
-        Users user = userRepository.findByEmail(email)
+        Users user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> {
-                    logger.error("Password change failed - User not found for email: {}", email);
+                    logger.error("Password change failed - User not found for userId: {}", userId);
                     return new IllegalArgumentException("User not found");
                 });
 
         // Verify old password
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            logger.warn("Password change failed - Incorrect old password for email: {}", email);
+            logger.warn("Password change failed - Incorrect old password for userId: {}", userId);
             return false;
         }
 
         // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        logger.info("Password changed successfully for userId: {}, email: {}", user.getUserId(), email);
+        logger.info("Password changed successfully for userId: {}", user.getUserId());
 
         // Send confirmation email
-        emailService.sendPasswordChangedEmail(email);
+        emailService.sendPasswordChangedEmail(user.getEmail());
 
         return true;
     }
