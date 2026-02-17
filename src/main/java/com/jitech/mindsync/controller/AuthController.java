@@ -3,9 +3,11 @@ package com.jitech.mindsync.controller;
 import com.jitech.mindsync.dto.RegisterRequest;
 import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.service.AuthService;
+import com.jitech.mindsync.service.ValkeyService;
 import com.jitech.mindsync.dto.LoginRequest;
 import com.jitech.mindsync.security.JwtProvider;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -21,21 +23,56 @@ import java.util.Map;
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private static final String GUEST_ID_COOKIE_NAME = "guest_id";
 
     private final AuthService authService;
     private final JwtProvider jwtProvider;
+    private final ValkeyService valkeyService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtProvider jwtProvider) {
+    public AuthController(AuthService authService, JwtProvider jwtProvider, ValkeyService valkeyService) {
         this.authService = authService;
         this.jwtProvider = jwtProvider;
+        this.valkeyService = valkeyService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, 
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         logger.info("POST /register - Registration request received for email: {}", request.getEmail());
         try {
             Users user = authService.registerUser(request);
+
+            // Extract guest_id from cookies if present
+            String guestId = extractGuestIdFromCookies(httpRequest);
+            
+            // Send handover message to Valkey if guest_id exists
+            if (guestId != null) {
+                String messageId = valkeyService.sendHandoverMessage(guestId, user.getUserId().toString());
+                if (messageId != null) {
+                    logger.info("Handover message sent for guest_id={} to user_id={}, message_id={}",
+                            guestId, user.getUserId(), messageId);
+                } else {
+                    logger.warn("Failed to send handover message for guest_id={} to user_id={}",
+                            guestId, user.getUserId());
+                }
+            }
+
+            // Generate JWT token for the new user
+            String token = jwtProvider.generateToken(user.getUserId().toString());
+            Cookie jwtCookie = new Cookie("jwt", token);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(true);
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(24 * 60 * 60); // 24 hours
+            jwtCookie.setAttribute("SameSite", "Strict");
+            httpResponse.addCookie(jwtCookie);
+            logger.debug("JWT cookie set for newly registered userId: {}", user.getUserId());
+
+            // Clear guest_id cookie after handover and JWT set
+            clearGuestIdCookie(httpResponse);
+            logger.debug("Guest ID cookie cleared for registered user: {}", user.getEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -78,6 +115,10 @@ public class AuthController {
             httpResponse.addCookie(jwtCookie);
             logger.debug("JWT cookie set for email: {}", user.getEmail());
 
+            // Clear guest_id cookie upon successful login
+            clearGuestIdCookie(httpResponse);
+            logger.debug("Guest ID cookie cleared for logged in user: {}", user.getEmail());
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Login successful");
@@ -116,10 +157,45 @@ public class AuthController {
         jwtCookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(jwtCookie);
 
+        // Also clear guest_id cookie
+        clearGuestIdCookie(httpResponse);
+
         logger.info("POST /logout - Logout successful, JWT cookie cleared");
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Logout successful"));
+    }
+
+    /**
+     * Helper method to clear the guest_id cookie.
+     * Called on successful login, registration, and logout.
+     */
+    private void clearGuestIdCookie(HttpServletResponse httpResponse) {
+        Cookie guestIdCookie = new Cookie(GUEST_ID_COOKIE_NAME, null);
+        guestIdCookie.setHttpOnly(true);
+        guestIdCookie.setSecure(true);
+        guestIdCookie.setPath("/");
+        guestIdCookie.setMaxAge(0); // Expire immediately
+        guestIdCookie.setAttribute("SameSite", "Strict");
+        httpResponse.addCookie(guestIdCookie);
+    }
+
+    /**
+     * Extract guest_id cookie value from request.
+     * 
+     * @param request The HTTP request
+     * @return The guest_id value, or null if not found
+     */
+    private String extractGuestIdFromCookies(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (GUEST_ID_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
 }

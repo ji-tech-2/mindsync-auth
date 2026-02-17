@@ -59,6 +59,7 @@ jobs:
               -e RESEND_API="${{ secrets.RESEND_API }}" \
               -e JWT_PRIVATE_KEY="${{ secrets.JWT_PRIVATE_KEY }}" \
               -e JWT_PUBLIC_KEY="${{ secrets.JWT_PUBLIC_KEY }}" \
+              -e VALKEY_URL="${{ secrets.VALKEY_URL }}" \
               $IMAGE_NAME:$IMAGE_TAG
 
             docker image prune -f

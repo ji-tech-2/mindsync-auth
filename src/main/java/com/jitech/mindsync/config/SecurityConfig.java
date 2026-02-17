@@ -1,5 +1,6 @@
 package com.jitech.mindsync.config;
 
+import com.jitech.mindsync.security.GuestSessionFilter;
 import com.jitech.mindsync.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -21,12 +22,14 @@ import java.util.Arrays;
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtFilter;
+        private final GuestSessionFilter guestSessionFilter;
 
         @Value("${app.cors.allowed-origins}")
         private String allowedOriginsString;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+        public SecurityConfig(JwtAuthenticationFilter jwtFilter, GuestSessionFilter guestSessionFilter) {
                 this.jwtFilter = jwtFilter;
+                this.guestSessionFilter = guestSessionFilter;
         }
 
         @Bean
@@ -74,6 +77,7 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated());
 
                 http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                http.addFilterAfter(guestSessionFilter, JwtAuthenticationFilter.class);
 
                 return http.build();
         }

@@ -10,6 +10,8 @@ import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.security.JwtAuthenticationFilter;
 import com.jitech.mindsync.security.JwtProvider;
 import com.jitech.mindsync.service.AuthService;
+import com.jitech.mindsync.service.ValkeyService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,6 +51,9 @@ class AuthControllerTest {
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private ValkeyService valkeyService;
 
     private ObjectMapper objectMapper;
     private Users testUser;
@@ -100,10 +105,12 @@ class AuthControllerTest {
             request.setWorkRmt("In-person");
 
             Users newUser = new Users();
+            newUser.setUserId(UUID.randomUUID());
             newUser.setEmail("newuser@example.com");
             newUser.setName("New User");
 
             when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(anyString())).thenReturn("mock.jwt.token");
 
             // When/Then
             mockMvc.perform(post("/register")
@@ -116,6 +123,176 @@ class AuthControllerTest {
                     .andExpect(jsonPath("$.data.name", is("New User")));
 
             verify(authService, times(1)).registerUser(any(RegisterRequest.class));
+        }
+
+        @Test
+        @DisplayName("Should clear guest_id cookie on successful registration")
+        void register_WithValidRequest_ShouldClearGuestIdCookie() throws Exception {
+            // Given
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("newuser@example.com");
+            request.setPassword("password123");
+            request.setName("New User");
+            request.setDob(LocalDate.of(1995, 5, 20));
+            request.setGender("Male");
+            request.setOccupation("Student");
+            request.setWorkRmt("In-person");
+
+            Users newUser = new Users();
+            newUser.setUserId(UUID.randomUUID());
+            newUser.setEmail("newuser@example.com");
+            newUser.setName("New User");
+
+            when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(anyString())).thenReturn("mock.jwt.token");
+
+            // When/Then
+            mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().exists("jwt"))
+                    .andExpect(cookie().exists("guest_id"))
+                    .andExpect(cookie().maxAge("guest_id", 0))
+                    .andExpect(cookie().httpOnly("guest_id", true));
+        }
+
+        @Test
+        @DisplayName("Should send handover message when guest_id cookie exists")
+        void register_WithGuestIdCookie_ShouldSendHandoverMessage() throws Exception {
+            // Given
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("newuser@example.com");
+            request.setPassword("password123");
+            request.setName("New User");
+            request.setDob(LocalDate.of(1995, 5, 20));
+            request.setGender("Male");
+            request.setOccupation("Student");
+            request.setWorkRmt("In-person");
+
+            Users newUser = new Users();
+            UUID userId = UUID.randomUUID();
+            newUser.setUserId(userId);
+            newUser.setEmail("newuser@example.com");
+            newUser.setName("New User");
+
+            String guestId = "guest-abc-123";
+            String messageId = "1234567890123-0";
+
+            when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(userId.toString())).thenReturn("mock.jwt.token");
+            when(valkeyService.sendHandoverMessage(guestId, userId.toString())).thenReturn(messageId);
+
+            // When/Then
+            mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .cookie(new Cookie("guest_id", guestId))
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)));
+
+            verify(valkeyService, times(1)).sendHandoverMessage(guestId, userId.toString());
+        }
+
+        @Test
+        @DisplayName("Should not send handover message when no guest_id cookie")
+        void register_WithoutGuestIdCookie_ShouldNotSendHandoverMessage() throws Exception {
+            // Given
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("newuser@example.com");
+            request.setPassword("password123");
+            request.setName("New User");
+            request.setDob(LocalDate.of(1995, 5, 20));
+            request.setGender("Male");
+            request.setOccupation("Student");
+            request.setWorkRmt("In-person");
+
+            Users newUser = new Users();
+            newUser.setUserId(UUID.randomUUID());
+            newUser.setEmail("newuser@example.com");
+            newUser.setName("New User");
+
+            when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(anyString())).thenReturn("mock.jwt.token");
+
+            // When/Then
+            mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)));
+
+            verify(valkeyService, never()).sendHandoverMessage(anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("Should set JWT cookie on successful registration")
+        void register_WithValidRequest_ShouldSetJwtCookie() throws Exception {
+            // Given
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("newuser@example.com");
+            request.setPassword("password123");
+            request.setName("New User");
+            request.setDob(LocalDate.of(1995, 5, 20));
+            request.setGender("Male");
+            request.setOccupation("Student");
+            request.setWorkRmt("In-person");
+
+            Users newUser = new Users();
+            newUser.setUserId(UUID.randomUUID());
+            newUser.setEmail("newuser@example.com");
+            newUser.setName("New User");
+
+            when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(anyString())).thenReturn("mock.jwt.token");
+
+            // When/Then
+            mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().exists("jwt"))
+                    .andExpect(cookie().httpOnly("jwt", true))
+                    .andExpect(cookie().maxAge("jwt", 24 * 60 * 60));
+
+            verify(jwtProvider, times(1)).generateToken(anyString());
+        }
+
+        @Test
+        @DisplayName("Should continue registration even if handover message fails")
+        void register_WhenHandoverFails_ShouldStillRegister() throws Exception {
+            // Given
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("newuser@example.com");
+            request.setPassword("password123");
+            request.setName("New User");
+            request.setDob(LocalDate.of(1995, 5, 20));
+            request.setGender("Male");
+            request.setOccupation("Student");
+            request.setWorkRmt("In-person");
+
+            Users newUser = new Users();
+            UUID userId = UUID.randomUUID();
+            newUser.setUserId(userId);
+            newUser.setEmail("newuser@example.com");
+            newUser.setName("New User");
+
+            String guestId = "guest-abc-123";
+
+            when(authService.registerUser(any(RegisterRequest.class))).thenReturn(newUser);
+            when(jwtProvider.generateToken(userId.toString())).thenReturn("mock.jwt.token");
+            when(valkeyService.sendHandoverMessage(guestId, userId.toString())).thenReturn(null); // Failure
+
+            // When/Then
+            mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .cookie(new Cookie("guest_id", guestId))
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(cookie().exists("jwt"));
+
+            verify(valkeyService, times(1)).sendHandoverMessage(guestId, userId.toString());
         }
 
         @Test
@@ -196,6 +373,28 @@ class AuthControllerTest {
 
             verify(authService, times(1)).login("test@example.com", "password123");
             verify(jwtProvider, times(1)).generateToken("test@example.com");
+        }
+
+        @Test
+        @DisplayName("Should clear guest_id cookie on successful login")
+        void login_WithValidCredentials_ShouldClearGuestIdCookie() throws Exception {
+            // Given
+            LoginRequest request = new LoginRequest();
+            request.setEmail("test@example.com");
+            request.setPassword("password123");
+
+            when(authService.login("test@example.com", "password123")).thenReturn(testUser);
+            when(jwtProvider.generateToken(testUser.getUserId().toString())).thenReturn("mock.jwt.token");
+
+            // When/Then
+            mockMvc.perform(post("/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().exists("jwt"))
+                    .andExpect(cookie().exists("guest_id"))
+                    .andExpect(cookie().maxAge("guest_id", 0))
+                    .andExpect(cookie().httpOnly("guest_id", true));
         }
 
         @Test
