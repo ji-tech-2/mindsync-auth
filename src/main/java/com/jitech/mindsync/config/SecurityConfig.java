@@ -52,11 +52,13 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .logout(logout -> logout.disable()) // Disable default logout to use custom endpoint
                                 .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(request -> "OPTIONS".equals(request.getMethod()))
+                                                .permitAll() // Allow CORS preflight
                                                 .requestMatchers("/register", "/login", "/logout").permitAll() // Allow
                                                                                                                // auth
                                                                                                                // endpoints
-                                                .requestMatchers("/profile/request-otp", "/profile/verify-otp",
-                                                                "/profile/reset-password")
+                                                .requestMatchers("/profile/request-otp", "/profile/request-signup-otp",
+                                                                "/profile/verify-otp", "/profile/reset-password")
                                                 .permitAll() // Public OTP endpoints
                                                 .requestMatchers("/test-email").permitAll() // test email endpoint
                                                 .requestMatchers("/test-otp").permitAll() // test otp endpoint
