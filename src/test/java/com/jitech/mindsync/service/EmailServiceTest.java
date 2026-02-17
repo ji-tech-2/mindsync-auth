@@ -1,5 +1,6 @@
 package com.jitech.mindsync.service;
 
+import com.jitech.mindsync.model.OtpType;
 import com.resend.Resend;
 import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
@@ -71,14 +72,14 @@ class EmailServiceTest {
     class SendOtpEmailTests {
 
         @Test
-        @DisplayName("Should send OTP email successfully")
-        void sendOtpEmail_WithValidParameters_ShouldSendEmail() throws ResendException {
+        @DisplayName("Should send password reset OTP email successfully")
+        void sendOtpEmail_WithPasswordReset_ShouldSendEmail() throws ResendException {
             // Given
             String email = "test@example.com";
             String otp = "123456";
 
             // When
-            emailService.sendOtpEmail(email, otp);
+            emailService.sendOtpEmail(email, otp, OtpType.PASSWORD_RESET);
 
             // Then
             var mockEmailsApi = mockResend.emails();
@@ -92,6 +93,28 @@ class EmailServiceTest {
         }
 
         @Test
+        @DisplayName("Should send signup verification OTP email successfully")
+        void sendOtpEmail_WithSignup_ShouldSendEmail() throws ResendException {
+            // Given
+            String email = "test@example.com";
+            String otp = "654321";
+
+            // When
+            emailService.sendOtpEmail(email, otp, OtpType.SIGNUP);
+
+            // Then
+            var mockEmailsApi = mockResend.emails();
+            ArgumentCaptor<CreateEmailOptions> captor = ArgumentCaptor.forClass(CreateEmailOptions.class);
+            verify(mockEmailsApi).send(captor.capture());
+
+            CreateEmailOptions options = captor.getValue();
+            assertTrue(options.getTo().toString().contains(email));
+            assertEquals("MindSync - Email Verification OTP", options.getSubject());
+            assertTrue(options.getHtml().contains(otp));
+            assertTrue(options.getHtml().contains("Welcome to MindSync"));
+        }
+
+        @Test
         @DisplayName("Should sanitize OTP to prevent XSS")
         void sendOtpEmail_WithMaliciousOtp_ShouldSanitize() throws ResendException {
             // Given
@@ -99,7 +122,7 @@ class EmailServiceTest {
             String maliciousOtp = "<script>alert('xss')</script>";
 
             // When
-            emailService.sendOtpEmail(email, maliciousOtp);
+            emailService.sendOtpEmail(email, maliciousOtp, OtpType.PASSWORD_RESET);
 
             // Then
             var mockEmailsApi = mockResend.emails();
@@ -121,7 +144,7 @@ class EmailServiceTest {
             // When/Then
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> emailService.sendOtpEmail("test@example.com", "123456"));
+                    () -> emailService.sendOtpEmail("test@example.com", "123456", OtpType.PASSWORD_RESET));
 
             assertTrue(exception.getMessage().contains("not configured"));
         }
@@ -139,20 +162,20 @@ class EmailServiceTest {
             // When/Then
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> emailService.sendOtpEmail(email, otp));
+                    () -> emailService.sendOtpEmail(email, otp, OtpType.PASSWORD_RESET));
 
             assertTrue(exception.getMessage().contains("Failed to send email"));
         }
 
         @Test
-        @DisplayName("Should include OTP in email content")
-        void sendOtpEmail_ShouldIncludeOtpInContent() throws ResendException {
+        @DisplayName("Should include OTP in password reset email content")
+        void sendOtpEmail_ShouldIncludeOtpInPasswordResetContent() throws ResendException {
             // Given
             String email = "test@example.com";
             String otp = "987654";
 
             // When
-            emailService.sendOtpEmail(email, otp);
+            emailService.sendOtpEmail(email, otp, OtpType.PASSWORD_RESET);
 
             // Then
             var mockEmailsApi = mockResend.emails();
@@ -162,6 +185,28 @@ class EmailServiceTest {
             String htmlContent = captor.getValue().getHtml();
             assertTrue(htmlContent.contains(otp));
             assertTrue(htmlContent.contains("Password Reset Request"));
+            assertTrue(htmlContent.contains("10 minutes"));
+        }
+
+        @Test
+        @DisplayName("Should include OTP in signup verification email content")
+        void sendOtpEmail_ShouldIncludeOtpInSignupContent() throws ResendException {
+            // Given
+            String email = "test@example.com";
+            String otp = "555666";
+
+            // When
+            emailService.sendOtpEmail(email, otp, OtpType.SIGNUP);
+
+            // Then
+            var mockEmailsApi = mockResend.emails();
+            ArgumentCaptor<CreateEmailOptions> captor = ArgumentCaptor.forClass(CreateEmailOptions.class);
+            verify(mockEmailsApi).send(captor.capture());
+
+            String htmlContent = captor.getValue().getHtml();
+            assertTrue(htmlContent.contains(otp));
+            assertTrue(htmlContent.contains("Welcome to MindSync"));
+            assertTrue(htmlContent.contains("verify your email"));
             assertTrue(htmlContent.contains("10 minutes"));
         }
     }

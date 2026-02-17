@@ -23,13 +23,15 @@ public class EmailTestController {
     private OtpService otpService;
 
     @GetMapping("/test-email")
-    public String sendTestEmail(@RequestParam String to) {
+    public String sendTestEmail(@RequestParam String to,
+            @RequestParam(defaultValue = "SIGNUP") String type) {
         // tujuan ini cuma buat ngesend message doang sebenarnya
         // jadi kalau OTP hard coded ga ngefek
         try {
-            logger.info("Preparing to send test email to {}", to);
+            logger.info("Preparing to send test email to {} with type {}", to, type);
             // Use the OTP email as a test (sends a dummy OTP)
-            emailService.sendOtpEmail(to, "123456");
+            OtpType otpType = OtpType.valueOf(type.toUpperCase());
+            emailService.sendOtpEmail(to, "123456", otpType);
             return "Test email sent successfully to " + to;
         } catch (Exception e) {
             return "Failed to send email: " + e.getMessage();

@@ -10,6 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -41,7 +42,7 @@ public class SecurityConfig {
                                 .headers(headers -> headers
                                                 .frameOptions(frame -> frame.deny())
                                                 .xssProtection(xss -> xss.headerValue(
-                                                                org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                                                                XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                                                 .contentTypeOptions(contentType -> contentType.disable())
                                                 .httpStrictTransportSecurity(hsts -> hsts
                                                                 .includeSubDomains(true)
@@ -54,11 +55,13 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(request -> "OPTIONS".equals(request.getMethod()))
                                                 .permitAll() // Allow CORS preflight
-                                                .requestMatchers("/register", "/login", "/logout").permitAll() // Allow
-                                                                                                               // auth
-                                                                                                               // endpoints
-                                                .requestMatchers("/profile/request-otp", "/profile/request-signup-otp",
-                                                                "/profile/verify-otp", "/profile/reset-password")
+                                                // Allow auth endpoints
+                                                .requestMatchers("/register", "/login", "/logout").permitAll()
+                                                .requestMatchers(
+                                                                "/profile/request-otp",
+                                                                "/profile/request-signup-otp",
+                                                                "/profile/verify-otp",
+                                                                "/profile/reset-password")
                                                 .permitAll() // Public OTP endpoints
                                                 .requestMatchers("/test-email").permitAll() // test email endpoint
                                                 .requestMatchers("/test-otp").permitAll() // test otp endpoint
