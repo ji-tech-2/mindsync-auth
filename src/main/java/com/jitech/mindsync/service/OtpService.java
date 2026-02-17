@@ -119,7 +119,7 @@ public class OtpService {
         logger.debug("OTP token saved to database for email: {}, type: {}", email, otpType);
 
         // Send plain OTP via email (user needs the original code)
-        emailService.sendOtpEmail(email, otpCode);
+        emailService.sendOtpEmail(email, otpCode, otpType);
         logger.info("OTP process completed successfully for email: {}, type: {}", email, otpType);
     }
 

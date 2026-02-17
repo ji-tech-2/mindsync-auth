@@ -37,27 +37,27 @@ class EmailTestControllerTest {
 
         @Test
         void testSendTestEmailSuccess() throws Exception {
-                doNothing().when(emailService).sendOtpEmail(anyString(), anyString());
+                doNothing().when(emailService).sendOtpEmail(anyString(), anyString(), any(OtpType.class));
 
                 mockMvc.perform(get("/test-email")
                                 .param("to", "test@example.com"))
                                 .andExpect(status().isOk())
                                 .andExpect(content().string("Test email sent successfully to test@example.com"));
 
-                verify(emailService).sendOtpEmail("test@example.com", "123456");
+                verify(emailService).sendOtpEmail("test@example.com", "123456", OtpType.SIGNUP);
         }
 
         @Test
         void testSendTestEmailFailure() throws Exception {
                 doThrow(new RuntimeException("Email service error"))
-                                .when(emailService).sendOtpEmail(anyString(), anyString());
+                                .when(emailService).sendOtpEmail(anyString(), anyString(), any(OtpType.class));
 
                 mockMvc.perform(get("/test-email")
                                 .param("to", "test@example.com"))
                                 .andExpect(status().isOk())
                                 .andExpect(content().string("Failed to send email: Email service error"));
 
-                verify(emailService).sendOtpEmail("test@example.com", "123456");
+                verify(emailService).sendOtpEmail("test@example.com", "123456", OtpType.SIGNUP);
         }
 
         @Test

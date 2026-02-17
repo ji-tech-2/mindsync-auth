@@ -43,13 +43,14 @@ public class JwtProvider {
     }
 
     private PrivateKey loadPrivateKey() throws Exception {
+        if (privateKeyBase64 == null || privateKeyBase64.isEmpty()) {
+            logger.error("No private key configured");
+            throw new IllegalStateException("No private key configured. Set mindsync.jwt.private-key.");
+        }
+
+        logger.debug("Loading private key");
+
         try {
-            if (privateKeyBase64 == null || privateKeyBase64.isEmpty()) {
-                throw new IllegalStateException("No private key configured. Set mindsync.jwt.private-key.");
-            }
-
-            logger.debug("Loading private key");
-
             // Strip PEM headers/footers and whitespace, then decode the Base64 body
             String keyBody = privateKeyBase64
                     .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -66,20 +67,21 @@ public class JwtProvider {
             logger.info("Private key loaded successfully");
             return key;
 
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             logger.error("Failed to load private key: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to load private key", e);
         }
     }
 
     private PublicKey loadPublicKey() throws Exception {
+        if (publicKeyBase64 == null || publicKeyBase64.isEmpty()) {
+            logger.error("No public key configured");
+            throw new IllegalStateException("No public key configured. Set mindsync.jwt.public-key.");
+        }
+
+        logger.debug("Loading public key");
+
         try {
-            if (publicKeyBase64 == null || publicKeyBase64.isEmpty()) {
-                throw new IllegalStateException("No public key configured. Set mindsync.jwt.public-key.");
-            }
-
-            logger.debug("Loading public key");
-
             // Strip PEM headers/footers and whitespace, then decode the Base64 body
             String keyBody = publicKeyBase64
                     .replace("-----BEGIN PUBLIC KEY-----", "")
@@ -96,7 +98,7 @@ public class JwtProvider {
             logger.info("Public key loaded successfully");
             return key;
 
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             logger.error("Failed to load public key: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to load public key", e);
         }

@@ -84,7 +84,7 @@ class OtpServiceTest {
             // Then
             verify(otpTokenRepository, times(1)).deleteByEmailAndOtpType(email, OtpType.PASSWORD_RESET);
             verify(otpTokenRepository, times(1)).save(any(OtpToken.class));
-            verify(emailService, times(1)).sendOtpEmail(eq(email), anyString());
+            verify(emailService, times(1)).sendOtpEmail(eq(email), anyString(), eq(OtpType.PASSWORD_RESET));
         }
 
         @Test
