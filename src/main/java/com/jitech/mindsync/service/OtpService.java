@@ -161,4 +161,43 @@ public class OtpService {
 
         return true;
     }
+
+    /**
+     * Verify OTP without consuming it (does not mark as used)
+     * Returns status: "valid" or "invalid" (expired is treated as invalid)
+     */
+    public String verifyOtpWithoutConsuming(String email, String otpCode, OtpType otpType) {
+        logger.info("Starting OTP verification (no consumption) for email: {}, type: {}", email, otpType);
+
+        // Find unused OTP for this email and type
+        Optional<OtpToken> otpTokenOpt = otpTokenRepository
+                .findByEmailAndOtpTypeAndIsUsedFalse(email, otpType);
+
+        if (otpTokenOpt.isEmpty()) {
+            logger.warn("OTP verification failed - No unused OTP found for email: {}, type: {}",
+                    email, otpType);
+            return "invalid";
+        }
+
+        OtpToken otpToken = otpTokenOpt.get();
+
+        // Check if OTP is expired (return invalid to not differentiate from invalid
+        // OTP)
+        if (otpToken.isExpired()) {
+            logger.warn("OTP verification failed - OTP expired for email: {}, type: {}. Expired at: {}",
+                    email, otpType, otpToken.getExpiresAt());
+            return "invalid";
+        }
+
+        // Verify OTP hash matches
+        if (!passwordEncoder.matches(otpCode, otpToken.getOtpCode())) {
+            logger.warn("OTP verification failed - OTP mismatch for email: {}, type: {}",
+                    email, otpType);
+            return "invalid";
+        }
+
+        logger.info("OTP verified successfully (not consumed) for email: {}, type: {}",
+                email, otpType);
+        return "valid";
+    }
 }

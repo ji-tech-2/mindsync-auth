@@ -139,6 +139,36 @@ public class ProfileController {
         }
 
         /**
+         * Verify OTP for password reset without consuming it
+         * Returns validation status: valid or invalid (expired treated as invalid)
+         * Public endpoint - no token required
+         */
+        @PostMapping("/verify-otp")
+        public ResponseEntity<?> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
+                logger.info("POST /profile/verify-otp - OTP verification request for email: {}", request.getEmail());
+
+                String status = otpService.verifyOtpWithoutConsuming(
+                                request.getEmail(),
+                                request.getOtp(),
+                                OtpType.PASSWORD_RESET);
+
+                logger.info("POST /profile/verify-otp - OTP verification result for email: {}, status: {}",
+                                request.getEmail(), status);
+
+                if ("valid".equals(status)) {
+                        return ResponseEntity.ok(Map.of(
+                                        "success", true,
+                                        "status", "valid",
+                                        "message", "OTP is valid"));
+                } else {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                        "success", false,
+                                        "status", "invalid",
+                                        "message", "Invalid or expired OTP. Please request a new one."));
+                }
+        }
+
+        /**
          * Reset password using OTP
          * Public endpoint - no token required
          */
