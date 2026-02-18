@@ -251,6 +251,71 @@ class ProfileControllerTest {
         }
 
         @Test
+        void verifyOtp_Valid() throws Exception {
+                OtpVerifyRequest verifyRequest = new OtpVerifyRequest();
+                verifyRequest.setEmail("test@example.com");
+                verifyRequest.setOtp("123456");
+
+                when(otpService.verifyOtpWithoutConsuming("test@example.com", "123456", OtpType.PASSWORD_RESET))
+                                .thenReturn("valid");
+
+                mockMvc.perform(post("/profile/verify-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(verifyRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.status").value("valid"))
+                                .andExpect(jsonPath("$.message").value("OTP is valid"));
+
+                verify(otpService).verifyOtpWithoutConsuming("test@example.com", "123456", OtpType.PASSWORD_RESET);
+        }
+
+        @Test
+        void verifyOtp_Invalid() throws Exception {
+                OtpVerifyRequest verifyRequest = new OtpVerifyRequest();
+                verifyRequest.setEmail("test@example.com");
+                verifyRequest.setOtp("999999");
+
+                when(otpService.verifyOtpWithoutConsuming("test@example.com", "999999", OtpType.PASSWORD_RESET))
+                                .thenReturn("invalid");
+
+                mockMvc.perform(post("/profile/verify-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(verifyRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.status").value("invalid"))
+                                .andExpect(jsonPath("$.message")
+                                                .value("Invalid or expired OTP. Please request a new one."));
+
+                verify(otpService).verifyOtpWithoutConsuming("test@example.com", "999999", OtpType.PASSWORD_RESET);
+        }
+
+        @Test
+        void verifyOtp_Expired() throws Exception {
+                OtpVerifyRequest verifyRequest = new OtpVerifyRequest();
+                verifyRequest.setEmail("test@example.com");
+                verifyRequest.setOtp("123456");
+
+                when(otpService.verifyOtpWithoutConsuming("test@example.com", "123456", OtpType.PASSWORD_RESET))
+                                .thenReturn("invalid");
+
+                mockMvc.perform(post("/profile/verify-otp")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(verifyRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.status").value("invalid"))
+                                .andExpect(jsonPath("$.message")
+                                                .value("Invalid or expired OTP. Please request a new one."));
+
+                verify(otpService).verifyOtpWithoutConsuming("test@example.com", "123456", OtpType.PASSWORD_RESET);
+        }
+
+        @Test
         void resetPassword_Success() throws Exception {
                 ResetPasswordRequest resetPasswordRequest = new ResetPasswordRequest();
                 resetPasswordRequest.setEmail("test@example.com");

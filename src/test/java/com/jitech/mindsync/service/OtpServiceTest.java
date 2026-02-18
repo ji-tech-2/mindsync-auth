@@ -298,4 +298,138 @@ class OtpServiceTest {
             assertTrue(tokenCaptor.getValue().isUsed());
         }
     }
+
+    @Nested
+    @DisplayName("Verify OTP Without Consuming Tests")
+    class VerifyOtpWithoutConsumingTests {
+
+        @Test
+        @DisplayName("Should return 'valid' for correct OTP")
+        void verifyOtpWithoutConsuming_WithCorrectOtp_ShouldReturnValid() {
+            // Given
+            String email = "test@example.com";
+            String otpCode = "123456";
+            String hashedOtp = "hashedOtp";
+
+            OtpToken otpToken = new OtpToken(
+                    email,
+                    hashedOtp,
+                    OtpType.PASSWORD_RESET,
+                    LocalDateTime.now(),
+                    LocalDateTime.now().plusMinutes(10));
+            otpToken.setUsed(false);
+
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
+            when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(true);
+
+            // When
+            String result = otpService.verifyOtpWithoutConsuming(email, otpCode, OtpType.PASSWORD_RESET);
+
+            // Then
+            assertEquals("valid", result);
+            verify(otpTokenRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should return 'invalid' for incorrect OTP")
+        void verifyOtpWithoutConsuming_WithIncorrectOtp_ShouldReturnInvalid() {
+            // Given
+            String email = "test@example.com";
+            String otpCode = "123456";
+            String hashedOtp = "hashedOtp";
+
+            OtpToken otpToken = new OtpToken(
+                    email,
+                    hashedOtp,
+                    OtpType.PASSWORD_RESET,
+                    LocalDateTime.now(),
+                    LocalDateTime.now().plusMinutes(10));
+            otpToken.setUsed(false);
+
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
+            when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(false);
+
+            // When
+            String result = otpService.verifyOtpWithoutConsuming(email, otpCode, OtpType.PASSWORD_RESET);
+
+            // Then
+            assertEquals("invalid", result);
+            verify(otpTokenRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should return 'invalid' when no unused OTP found")
+        void verifyOtpWithoutConsuming_WithNoUnusedOtp_ShouldReturnInvalid() {
+            // Given
+            String email = "test@example.com";
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.empty());
+
+            // When
+            String result = otpService.verifyOtpWithoutConsuming(email, "123456", OtpType.PASSWORD_RESET);
+
+            // Then
+            assertEquals("invalid", result);
+            verify(passwordEncoder, never()).matches(anyString(), anyString());
+            verify(otpTokenRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should return 'invalid' for expired OTP")
+        void verifyOtpWithoutConsuming_WithExpiredOtp_ShouldReturnInvalid() {
+            // Given
+            String email = "test@example.com";
+            String otpCode = "123456";
+            String hashedOtp = "hashedOtp";
+
+            OtpToken otpToken = new OtpToken(
+                    email,
+                    hashedOtp,
+                    OtpType.PASSWORD_RESET,
+                    LocalDateTime.now().minusMinutes(20),
+                    LocalDateTime.now().minusMinutes(10));
+            otpToken.setUsed(false);
+
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
+
+            // When
+            String result = otpService.verifyOtpWithoutConsuming(email, otpCode, OtpType.PASSWORD_RESET);
+
+            // Then
+            assertEquals("invalid", result);
+            verify(passwordEncoder, never()).matches(anyString(), anyString());
+            verify(otpTokenRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should not mark OTP as used after verification")
+        void verifyOtpWithoutConsuming_WithValidOtp_ShouldNotMarkAsUsed() {
+            // Given
+            String email = "test@example.com";
+            String otpCode = "123456";
+            String hashedOtp = "hashedOtp";
+
+            OtpToken otpToken = new OtpToken(
+                    email,
+                    hashedOtp,
+                    OtpType.PASSWORD_RESET,
+                    LocalDateTime.now(),
+                    LocalDateTime.now().plusMinutes(10));
+            otpToken.setUsed(false);
+
+            when(otpTokenRepository.findByEmailAndOtpTypeAndIsUsedFalse(email, OtpType.PASSWORD_RESET))
+                    .thenReturn(Optional.of(otpToken));
+            when(passwordEncoder.matches(otpCode, hashedOtp)).thenReturn(true);
+
+            // When
+            otpService.verifyOtpWithoutConsuming(email, otpCode, OtpType.PASSWORD_RESET);
+
+            // Then
+            assertFalse(otpToken.isUsed());
+            verify(otpTokenRepository, never()).save(any());
+        }
+    }
 }
