@@ -17,6 +17,8 @@ class JwtProviderTest {
     private JwtProvider alternateProvider; // For testing with different keys
 
     private static final int TEST_EXPIRATION = 3600000; // 1 hour in milliseconds
+    private static final String TEST_USER_ID = "550e8400-e29b-41d4-a716-446655440000";
+    private static final String TEST_USER_ID_2 = "660e8400-e29b-41d4-a716-446655440001";
 
     // Test RSA key pair (2048-bit)
     private PrivateKey testPrivateKey;
@@ -60,10 +62,10 @@ class JwtProviderTest {
         @DisplayName("Should generate valid JWT token")
         void generateToken_ShouldReturnValidToken() {
             // Given
-            String email = "test@example.com";
+            String userId = TEST_USER_ID;
 
             // When
-            String token = jwtProvider.generateToken(email);
+            String token = jwtProvider.generateToken(userId);
 
             // Then
             assertThat(token).isNotNull();
@@ -72,15 +74,15 @@ class JwtProviderTest {
         }
 
         @Test
-        @DisplayName("Should generate different tokens for different emails")
-        void generateToken_DifferentEmails_ShouldReturnDifferentTokens() {
+        @DisplayName("Should generate different tokens for different userIds")
+        void generateToken_DifferentUserIds_ShouldReturnDifferentTokens() {
             // Given
-            String email1 = "user1@example.com";
-            String email2 = "user2@example.com";
+            String userId1 = TEST_USER_ID;
+            String userId2 = TEST_USER_ID_2;
 
             // When
-            String token1 = jwtProvider.generateToken(email1);
-            String token2 = jwtProvider.generateToken(email2);
+            String token1 = jwtProvider.generateToken(userId1);
+            String token2 = jwtProvider.generateToken(userId2);
 
             // Then
             assertThat(token1).isNotEqualTo(token2);
@@ -95,8 +97,8 @@ class JwtProviderTest {
         @DisplayName("Should validate correct token")
         void validateToken_WithValidToken_ShouldReturnTrue() {
             // Given
-            String email = "test@example.com";
-            String token = jwtProvider.generateToken(email);
+            String userId = TEST_USER_ID;
+            String token = jwtProvider.generateToken(userId);
 
             // When
             boolean isValid = jwtProvider.validateToken(token);
@@ -147,7 +149,7 @@ class JwtProviderTest {
             ReflectionTestUtils.setField(shortExpiryProvider, "publicKey", testPublicKey);
             ReflectionTestUtils.setField(shortExpiryProvider, "jwtExpiration", 1); // 1 millisecond
 
-            String token = shortExpiryProvider.generateToken("test@example.com");
+            String token = shortExpiryProvider.generateToken(TEST_USER_ID);
 
             // Wait for token to expire
             try {
@@ -167,7 +169,7 @@ class JwtProviderTest {
         @DisplayName("Should reject token signed with different key")
         void validateToken_WithWrongKey_ShouldReturnFalse() {
             // Given - Create token with different key pair
-            String token = alternateProvider.generateToken("test@example.com");
+            String token = alternateProvider.generateToken(TEST_USER_ID);
 
             // When - Validate with original provider (different public key)
             boolean isValid = jwtProvider.validateToken(token);
@@ -178,39 +180,39 @@ class JwtProviderTest {
     }
 
     @Nested
-    @DisplayName("Email Extraction Tests")
-    class EmailExtractionTests {
+    @DisplayName("UserId Extraction Tests")
+    class UserIdExtractionTests {
 
         @Test
-        @DisplayName("Should extract email from valid token")
-        void getEmailFromToken_WithValidToken_ShouldReturnEmail() {
+        @DisplayName("Should extract userId from valid token")
+        void getUserIdFromToken_WithValidToken_ShouldReturnUserId() {
             // Given
-            String email = "test@example.com";
-            String token = jwtProvider.generateToken(email);
+            String userId = TEST_USER_ID;
+            String token = jwtProvider.generateToken(userId);
 
             // When
-            String extractedEmail = jwtProvider.getEmailFromToken(token);
+            String extractedUserId = jwtProvider.getUserIdFromToken(token);
 
             // Then
-            assertThat(extractedEmail).isEqualTo(email);
+            assertThat(extractedUserId).isEqualTo(userId);
         }
 
         @Test
-        @DisplayName("Should extract correct email for different users")
-        void getEmailFromToken_DifferentUsers_ShouldReturnCorrectEmails() {
+        @DisplayName("Should extract correct userId for different users")
+        void getUserIdFromToken_DifferentUsers_ShouldReturnCorrectUserIds() {
             // Given
-            String email1 = "user1@example.com";
-            String email2 = "user2@example.com";
-            String token1 = jwtProvider.generateToken(email1);
-            String token2 = jwtProvider.generateToken(email2);
+            String userId1 = TEST_USER_ID;
+            String userId2 = TEST_USER_ID_2;
+            String token1 = jwtProvider.generateToken(userId1);
+            String token2 = jwtProvider.generateToken(userId2);
 
             // When
-            String extractedEmail1 = jwtProvider.getEmailFromToken(token1);
-            String extractedEmail2 = jwtProvider.getEmailFromToken(token2);
+            String extractedUserId1 = jwtProvider.getUserIdFromToken(token1);
+            String extractedUserId2 = jwtProvider.getUserIdFromToken(token2);
 
             // Then
-            assertThat(extractedEmail1).isEqualTo(email1);
-            assertThat(extractedEmail2).isEqualTo(email2);
+            assertThat(extractedUserId1).isEqualTo(userId1);
+            assertThat(extractedUserId2).isEqualTo(userId2);
         }
     }
 }

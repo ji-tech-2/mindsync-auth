@@ -56,16 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 3. Validate token if found
         if (token != null && jwtProvider.validateToken(token)) {
-            String email = jwtProvider.getEmailFromToken(token);
-            logger.debug("JWT token validated successfully. Authenticating user: {} for request: {}",
-                    email, requestUri);
+            String userId = jwtProvider.getUserIdFromToken(token);
+            logger.debug("JWT token validated successfully. Authenticating userId: {} for request: {}",
+                    userId, requestUri);
 
             // 4. Authenticate user in Spring Security context
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null,
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userId, null,
                     new ArrayList<>());
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            logger.info("User authenticated successfully: {} for request: {} {}", email, request.getMethod(),
+            logger.info("User authenticated successfully: userId={} for request: {} {}", userId, request.getMethod(),
                     requestUri);
         } else if (token != null) {
             logger.warn("Invalid JWT token provided for request: {} {}", request.getMethod(), requestUri);

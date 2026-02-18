@@ -355,7 +355,7 @@ class AuthControllerTest {
             request.setPassword("password123");
 
             when(authService.login("test@example.com", "password123")).thenReturn(testUser);
-            when(jwtProvider.generateToken("test@example.com")).thenReturn("mock.jwt.token");
+            when(jwtProvider.generateToken(testUser.getUserId().toString())).thenReturn("mock.jwt.token");
 
             // When/Then
             mockMvc.perform(post("/login")
@@ -372,7 +372,7 @@ class AuthControllerTest {
                     .andExpect(cookie().httpOnly("jwt", true));
 
             verify(authService, times(1)).login("test@example.com", "password123");
-            verify(jwtProvider, times(1)).generateToken("test@example.com");
+            verify(jwtProvider, times(1)).generateToken(testUser.getUserId().toString());
         }
 
         @Test
@@ -454,7 +454,7 @@ class AuthControllerTest {
             userWithNullGender.setOccupation(null);
 
             when(authService.login("test@example.com", "password123")).thenReturn(userWithNullGender);
-            when(jwtProvider.generateToken("test@example.com")).thenReturn("mock.jwt.token");
+            when(jwtProvider.generateToken(userWithNullGender.getUserId().toString())).thenReturn("mock.jwt.token");
 
             // When/Then
             mockMvc.perform(post("/login")
