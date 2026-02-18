@@ -3,6 +3,7 @@ package com.jitech.mindsync.service;
 import com.jitech.mindsync.dto.RegisterRequest;
 import com.jitech.mindsync.model.Genders;
 import com.jitech.mindsync.model.Occupations;
+import com.jitech.mindsync.model.OtpType;
 import com.jitech.mindsync.model.Users;
 import com.jitech.mindsync.model.WorkRemotes;
 import com.jitech.mindsync.repository.GendersRepository;
@@ -26,6 +27,7 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final OccupationsRepository occupationsRepository;
     private final WorkRemotesRepository workRemotesRepository;
+    private final OtpService otpService;
 
     @Autowired
     public AuthService(
@@ -33,24 +35,35 @@ public class AuthService {
             GendersRepository gendersRepository,
             OccupationsRepository occupationsRepository,
             WorkRemotesRepository workRemotesRepository,
-            BCryptPasswordEncoder passwordEncoder) {
+            BCryptPasswordEncoder passwordEncoder,
+            OtpService otpService) {
         this.userRepository = userRepository;
         this.gendersRepository = gendersRepository;
         this.occupationsRepository = occupationsRepository;
         this.workRemotesRepository = workRemotesRepository;
         this.passwordEncoder = passwordEncoder;
+        this.otpService = otpService;
     }
 
     public Users registerUser(RegisterRequest request) {
         logger.info("Starting user registration process for email: {}", request.getEmail());
 
-        // 1. Cek duplikasi email
+        // 1. Validate OTP
+        logger.debug("Validating OTP for email: {}", request.getEmail());
+        boolean otpValid = otpService.validateAndUseOtp(request.getEmail(), request.getOtp(), OtpType.SIGNUP);
+        if (!otpValid) {
+            logger.warn("Registration failed - Invalid or expired OTP for email: {}", request.getEmail());
+            throw new IllegalArgumentException("Invalid or expired OTP");
+        }
+        logger.debug("OTP validated successfully for email: {}", request.getEmail());
+
+        // 2. Cek duplikasi email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             logger.warn("Registration failed - Email already registered: {}", request.getEmail());
             throw new IllegalArgumentException("Email already registered");
         }
 
-        // 2. Cari Gender (Pastikan sesuai: Male, Female, Non-binary/Other)
+        // 3. Cari Gender (Pastikan sesuai: Male, Female, Non-binary/Other)
         logger.debug("Validating gender: {}", request.getGender());
         Genders gender = gendersRepository.findByGenderName(request.getGender().trim())
                 .orElseThrow(() -> {
@@ -58,7 +71,7 @@ public class AuthService {
                     return new IllegalArgumentException("Invalid gender");
                 });
 
-        // 3. Cari Occupation (Sesuai tabel: Employed, Student, dsb.)
+        // 4. Cari Occupation (Sesuai tabel: Employed, Student, dsb.)
         String occName = (request.getOccupation() == null) ? "Student" : request.getOccupation().trim();
         logger.debug("Validating occupation: {}", occName);
         Occupations occupation = occupationsRepository.findByOccupationName(occName)
@@ -67,7 +80,7 @@ public class AuthService {
                     return new IllegalArgumentException("Invalid occupation: " + occName);
                 });
 
-        // 4. Cari Work Remote (PENTING: Gunakan 'In-person', bukan 'On-site')
+        // 5. Cari Work Remote (PENTING: Gunakan 'In-person', bukan 'On-site')
         String workRmtName = (request.getWorkRmt() == null) ? "In-person" : request.getWorkRmt().trim();
         logger.debug("Validating work remote status: {}", workRmtName);
         WorkRemotes workRmt = workRemotesRepository.findByWorkRmtName(workRmtName)
@@ -76,7 +89,7 @@ public class AuthService {
                     return new IllegalArgumentException("Invalid work remote status: " + workRmtName);
                 });
 
-        // 5. Simpan User
+        // 6. Simpan User
         Users user = new Users();
         user.setEmail(request.getEmail());
         user.setUsername(request.getEmail());

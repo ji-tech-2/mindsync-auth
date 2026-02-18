@@ -98,6 +98,7 @@ class AuthControllerTest {
             RegisterRequest request = new RegisterRequest();
             request.setEmail("newuser@example.com");
             request.setPassword("password123");
+            request.setOtp("123456");
             request.setName("New User");
             request.setDob(LocalDate.of(1995, 5, 20));
             request.setGender("Male");
@@ -302,6 +303,7 @@ class AuthControllerTest {
             RegisterRequest request = new RegisterRequest();
             request.setEmail("existing@example.com");
             request.setPassword("password123");
+            request.setOtp("123456");
             request.setName("Test User");
             request.setDob(LocalDate.of(1995, 5, 20));
             request.setGender("Male");
@@ -325,6 +327,7 @@ class AuthControllerTest {
             RegisterRequest request = new RegisterRequest();
             request.setEmail("test@example.com");
             request.setPassword("password123");
+            request.setOtp("123456");
             request.setName("Test User");
             request.setDob(LocalDate.of(1995, 5, 20));
             request.setGender("InvalidGender");
