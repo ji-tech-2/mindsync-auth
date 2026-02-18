@@ -48,6 +48,9 @@ class AuthServiceTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private OtpService otpService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -78,6 +81,7 @@ class AuthServiceTest {
         validRegisterRequest = new RegisterRequest();
         validRegisterRequest.setEmail("test@example.com");
         validRegisterRequest.setPassword("password123");
+        validRegisterRequest.setOtp("123456");
         validRegisterRequest.setName("Test User");
         validRegisterRequest.setDob(LocalDate.of(2000, 1, 15));
         validRegisterRequest.setGender("Male");
@@ -105,6 +109,7 @@ class AuthServiceTest {
         @DisplayName("Should register user successfully with valid data")
         void registerUser_WithValidData_ShouldSucceed() {
             // Given
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("Male")).thenReturn(Optional.of(testGender));
             when(occupationsRepository.findByOccupationName("Student")).thenReturn(Optional.of(testOccupation));
@@ -126,6 +131,7 @@ class AuthServiceTest {
         @DisplayName("Should throw exception when email already exists")
         void registerUser_WithExistingEmail_ShouldThrowException() {
             // Given
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
             // When/Then
@@ -141,6 +147,7 @@ class AuthServiceTest {
         void registerUser_WithInvalidGender_ShouldThrowException() {
             // Given
             validRegisterRequest.setGender("InvalidGender");
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("InvalidGender")).thenReturn(Optional.empty());
 
@@ -157,6 +164,7 @@ class AuthServiceTest {
         void registerUser_WithInvalidOccupation_ShouldThrowException() {
             // Given
             validRegisterRequest.setOccupation("InvalidOccupation");
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("Male")).thenReturn(Optional.of(testGender));
             when(occupationsRepository.findByOccupationName("InvalidOccupation")).thenReturn(Optional.empty());
@@ -174,6 +182,7 @@ class AuthServiceTest {
         void registerUser_WithInvalidWorkRemote_ShouldThrowException() {
             // Given
             validRegisterRequest.setWorkRmt("InvalidWorkRemote");
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("Male")).thenReturn(Optional.of(testGender));
             when(occupationsRepository.findByOccupationName("Student")).thenReturn(Optional.of(testOccupation));
@@ -192,6 +201,7 @@ class AuthServiceTest {
         void registerUser_WithNullOccupation_ShouldUseDefault() {
             // Given
             validRegisterRequest.setOccupation(null);
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("Male")).thenReturn(Optional.of(testGender));
             when(occupationsRepository.findByOccupationName("Student")).thenReturn(Optional.of(testOccupation));
@@ -212,6 +222,7 @@ class AuthServiceTest {
         void registerUser_WithNullWorkRemote_ShouldUseDefault() {
             // Given
             validRegisterRequest.setWorkRmt(null);
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(true);
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
             when(gendersRepository.findByGenderName("Male")).thenReturn(Optional.of(testGender));
             when(occupationsRepository.findByOccupationName("Student")).thenReturn(Optional.of(testOccupation));
@@ -225,6 +236,20 @@ class AuthServiceTest {
             // Then
             assertThat(result).isNotNull();
             verify(workRemotesRepository).findByWorkRmtName("In-person");
+        }
+
+        @Test
+        @DisplayName("Should throw exception for invalid OTP")
+        void registerUser_WithInvalidOtp_ShouldThrowException() {
+            // Given
+            when(otpService.validateAndUseOtp(anyString(), anyString(), any())).thenReturn(false);
+
+            // When/Then
+            assertThatThrownBy(() -> authService.registerUser(validRegisterRequest))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid or expired OTP");
+
+            verify(userRepository, never()).save(any(Users.class));
         }
     }
 
