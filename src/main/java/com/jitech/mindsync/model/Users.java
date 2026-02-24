@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -53,9 +51,6 @@ public class Users {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Predictions> predictionsSet =  new HashSet<Predictions>();
-
     public Users() {}
 
     // Getters
@@ -69,7 +64,6 @@ public class Users {
     public String getPassword() { return password; }
     public LocalDate getDob() { return dob; }
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public  Set<Predictions> getPredictionsSet() { return predictionsSet; }
 
     // Setters
     public void setUserId(UUID userId) { this.userId = userId; }
@@ -82,5 +76,4 @@ public class Users {
     public void setPassword(String password) { this.password = password; }
     public void setDob(LocalDate dob) { this.dob = dob; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setPredictionsSet(Set<Predictions> predictionsSet) { this.predictionsSet = predictionsSet; }
 }
