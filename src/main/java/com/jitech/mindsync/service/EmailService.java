@@ -6,9 +6,14 @@ import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
 import com.resend.services.emails.model.CreateEmailResponse;
 import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
 
@@ -17,11 +22,18 @@ public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private static final String FROM_EMAIL = "MindSync <noreply@mail.mindsync.my>";
+    private static final String FROM_NAME = "MindSync";
 
     private Resend resend;
 
     @Value("${resend.api.key:}")
     private String resendApiKey;
+
+    @Value("${app.mail.smtp-from:}")
+    private String smtpFromEmail;
+
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
 
     @PostConstruct
     public void init() {
@@ -33,13 +45,63 @@ public class EmailService {
             resend = new Resend(resendApiKey);
             logger.info("EmailService initialized successfully with Resend API");
         }
+
+        if (mailSender != null) {
+            logger.info("SMTP fallback available via JavaMailSender");
+        } else {
+            logger.warn("SMTP fallback is not configured");
+        }
     }
 
     private void validateEmailConfigured() {
-        if (resend == null) {
-            logger.error("Attempt to send email failed - Email service is not configured");
+        if (resend == null && mailSender == null) {
+            logger.error("Attempt to send email failed - No email service is configured (neither Resend nor SMTP)");
             throw new RuntimeException("Email service is not configured. Please contact support.");
         }
+    }
+
+    /**
+     * Send an email, trying Resend API first, then falling back to SMTP.
+     */
+    private void sendEmail(String toEmail, String subject, String htmlContent) {
+        // Try Resend API first
+        if (resend != null) {
+            try {
+                CreateEmailOptions createEmailOptions = CreateEmailOptions.builder()
+                        .from(FROM_EMAIL)
+                        .to(toEmail)
+                        .subject(subject)
+                        .html(htmlContent)
+                        .build();
+
+                CreateEmailResponse response = resend.emails().send(createEmailOptions);
+                logger.info("Email sent via Resend API to {}. Email ID: {}", toEmail, response.getId());
+                return;
+            } catch (ResendException e) {
+                logger.warn("Resend API failed for {}. Error: {}. Attempting SMTP fallback...", toEmail,
+                        e.getMessage());
+            }
+        }
+
+        // Fallback to SMTP
+        if (mailSender != null) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                String fromAddr = (smtpFromEmail != null && !smtpFromEmail.isBlank()) ? smtpFromEmail : "noreply@mail.mindsync.my";
+                helper.setFrom(fromAddr, FROM_NAME);
+                helper.setTo(toEmail);
+                helper.setSubject(subject);
+                helper.setText(htmlContent, true);
+                mailSender.send(message);
+                logger.info("Email sent via SMTP fallback to {}", toEmail);
+                return;
+            } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+                logger.error("SMTP fallback also failed for {}. Error: {}", toEmail, e.getMessage(), e);
+            }
+        }
+
+        throw new RuntimeException("Failed to send email via all available methods. Please try again later.");
     }
 
     public void sendOtpEmail(String toEmail, String otp, OtpType otpType) {
@@ -86,21 +148,7 @@ public class EmailService {
             subject = "MindSync - Password Reset OTP";
         }
 
-        CreateEmailOptions createEmailOptions = CreateEmailOptions.builder()
-                .from(FROM_EMAIL)
-                .to(toEmail)
-                .subject(subject)
-                .html(htmlContent)
-                .build();
-
-        try {
-            logger.debug("Sending OTP email via Resend API to: {}", toEmail);
-            CreateEmailResponse response = resend.emails().send(createEmailOptions);
-            logger.info("OTP email sent successfully to {}. Email ID: {}", toEmail, response.getId());
-        } catch (ResendException e) {
-            logger.error("Failed to send OTP email to {}. Error: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email. Please try again later.");
-        }
+        sendEmail(toEmail, subject, htmlContent);
     }
 
     public void sendPasswordChangedEmail(String toEmail) {
@@ -117,20 +165,11 @@ public class EmailService {
                 "<p>Best regards,<br>MindSync Team</p>" +
                 "</div>";
 
-        CreateEmailOptions createEmailOptions = CreateEmailOptions.builder()
-                .from(FROM_EMAIL)
-                .to(toEmail)
-                .subject("MindSync - Password Changed Successfully")
-                .html(htmlContent)
-                .build();
-
         try {
-            logger.debug("Sending password changed confirmation email via Resend API to: {}", toEmail);
-            CreateEmailResponse response = resend.emails().send(createEmailOptions);
-            logger.info("Password changed email sent successfully to {}. Email ID: {}", toEmail, response.getId());
-        } catch (ResendException e) {
-            logger.error("Failed to send password changed confirmation email to {}. Error: {}", toEmail, e.getMessage(),
-                    e);
+            sendEmail(toEmail, "MindSync - Password Changed Successfully", htmlContent);
+        } catch (RuntimeException e) {
+            logger.error("Failed to send password changed confirmation email to {}. Error: {}", toEmail,
+                    e.getMessage(), e);
             // Don't throw exception for confirmation emails - password was already changed
             // Just log the error and continue
         }
