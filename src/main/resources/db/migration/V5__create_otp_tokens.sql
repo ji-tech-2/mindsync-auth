@@ -1,6 +1,6 @@
 -- Migration for table otp_tokens
-CREATE TABLE otp_tokens (
-    otp_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS otp_tokens (
+    otp_id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
     otp_code VARCHAR(255) NOT NULL,
     otp_type VARCHAR(50) NOT NULL,
