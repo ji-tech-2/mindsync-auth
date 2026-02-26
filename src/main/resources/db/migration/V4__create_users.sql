@@ -1,6 +1,6 @@
 -- Migration for table users
 CREATE TABLE IF NOT EXISTS users (
-    user_id CHAR(36) PRIMARY KEY,
+    user_id UUID PRIMARY KEY,
     gender_id INT NOT NULL,
     occupation_id INT NOT NULL,
     work_rmt_id INT NOT NULL,
