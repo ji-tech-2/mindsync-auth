@@ -6,6 +6,7 @@ import com.jitech.mindsync.service.AuthService;
 import com.jitech.mindsync.service.ValkeyService;
 import com.jitech.mindsync.dto.LoginRequest;
 import com.jitech.mindsync.security.JwtProvider;
+import com.jitech.mindsync.util.CookieUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,7 +24,7 @@ import java.util.Map;
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-    private static final String GUEST_ID_COOKIE_NAME = "guest_id";
+    private static final String GUEST_ID_COOKIE_NAME = CookieUtils.GUEST_ID_COOKIE_NAME;
 
     private final AuthService authService;
     private final JwtProvider jwtProvider;
@@ -37,7 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, 
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
         logger.info("POST /register - Registration request received for email: {}", request.getEmail());
@@ -46,7 +47,7 @@ public class AuthController {
 
             // Extract guest_id from cookies if present
             String guestId = extractGuestIdFromCookies(httpRequest);
-            
+
             // Send handover message to Valkey if guest_id exists
             if (guestId != null) {
                 String messageId = valkeyService.sendHandoverMessage(guestId, user.getUserId().toString());
@@ -157,10 +158,10 @@ public class AuthController {
         jwtCookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(jwtCookie);
 
-        // Also clear guest_id cookie
-        clearGuestIdCookie(httpResponse);
+        // Generate and set a new guest_id cookie immediately upon logout
+        String newGuestId = CookieUtils.createAndSetGuestIdCookie(httpResponse);
+        logger.info("POST /logout - Logout successful, JWT cookie cleared, new guest_id set: {}", newGuestId);
 
-        logger.info("POST /logout - Logout successful, JWT cookie cleared");
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Logout successful"));
@@ -168,7 +169,7 @@ public class AuthController {
 
     /**
      * Helper method to clear the guest_id cookie.
-     * Called on successful login, registration, and logout.
+     * Called on successful login and registration.
      */
     private void clearGuestIdCookie(HttpServletResponse httpResponse) {
         Cookie guestIdCookie = new Cookie(GUEST_ID_COOKIE_NAME, null);

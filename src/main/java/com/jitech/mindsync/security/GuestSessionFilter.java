@@ -1,5 +1,6 @@
 package com.jitech.mindsync.security;
 
+import com.jitech.mindsync.util.CookieUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 /**
  * Filter to manage guest session cookies.
@@ -22,9 +22,8 @@ import java.util.UUID;
 public class GuestSessionFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(GuestSessionFilter.class);
-    private static final String GUEST_ID_COOKIE_NAME = "guest_id";
+    private static final String GUEST_ID_COOKIE_NAME = CookieUtils.GUEST_ID_COOKIE_NAME;
     private static final String JWT_COOKIE_NAME = "jwt";
-    private static final int GUEST_COOKIE_MAX_AGE = 48 * 60 * 60; // 48 hours in seconds
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -55,16 +54,7 @@ public class GuestSessionFilter extends OncePerRequestFilter {
 
         // Create guest_id cookie only if neither jwt nor guest_id cookie exists
         if (!hasJwtCookie && !hasGuestIdCookie) {
-            String guestId = UUID.randomUUID().toString();
-
-            Cookie guestCookie = new Cookie(GUEST_ID_COOKIE_NAME, guestId);
-            guestCookie.setHttpOnly(true);
-            guestCookie.setSecure(true); // HTTPS only
-            guestCookie.setPath("/");
-            guestCookie.setMaxAge(GUEST_COOKIE_MAX_AGE);
-            guestCookie.setAttribute("SameSite", "Strict");
-
-            response.addCookie(guestCookie);
+            String guestId = CookieUtils.createAndSetGuestIdCookie(response);
             logger.info("Created guest_id cookie with value: {} for request: {} {}",
                     guestId, request.getMethod(), requestUri);
         } else {
